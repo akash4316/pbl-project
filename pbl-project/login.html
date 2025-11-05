@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in • Cricket DBMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --g1:#667eea; --g2:#764ba2; }
+    * { box-sizing: border-box; }
+    html,body { height:100%; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: radial-gradient(1200px 600px at 10% 10%, rgba(255,255,255,0.4), transparent), linear-gradient(135deg, #4f46e5, #7c3aed); color:#0f172a; }
+    .wrap { min-height:100%; display:grid; place-items:center; padding:24px; }
+    .card { width:100%; max-width: 420px; background: rgba(255,255,255,0.9); border-radius: 18px; box-shadow: 0 30px 60px rgba(0,0,0,0.25); backdrop-filter: blur(8px); padding: 28px; }
+    .brand { display:flex; align-items:center; gap:10px; margin-bottom: 14px; }
+    .brand .logo { width:36px; height:36px; border-radius:10px; background: linear-gradient(135deg, var(--g1), var(--g2)); display:grid; place-items:center; color:#fff; font-weight:800; box-shadow: 0 10px 20px rgba(0,0,0,.18); }
+    h1 { margin:6px 0 18px; font-size: 1.6rem; color:#111827; }
+    label { display:block; font-weight:600; color:#374151; margin: 10px 0 6px; }
+    .input { width:100%; padding: 14px 14px; border-radius:12px; border:2px solid #e5e7eb; font-size:15px; background:#fff; }
+    .input:focus { outline:none; border-color: var(--g1); box-shadow: 0 0 0 4px rgba(102,126,234,0.18); }
+    .actions { display:flex; align-items:center; justify-content:space-between; margin-top:16px; }
+    .btn { appearance:none; border:none; padding: 12px 16px; border-radius:12px; cursor:pointer; font-weight:800; }
+    .btn-primary { background: linear-gradient(45deg, var(--g1), var(--g2)); color:#fff; box-shadow: 0 8px 24px rgba(102,126,234,0.35); }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .note { margin-top:12px; color:#6b7280; font-size: 13px; }
+    .error { margin-top:10px; color:#b91c1c; font-weight:700; display:none; }
+    .success { margin-top:10px; color:#065f46; font-weight:700; display:none; }
+    .footer { margin-top:18px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280; }
+    .link { color:#4f46e5; text-decoration:none; font-weight:600; }
+    .link:hover { text-decoration:underline; }
+    .loader { display:none; width:42px; height:42px; border-radius:50%; border:4px solid rgba(255,255,255,0.6); border-top-color:#fff; animation:spin .9s linear infinite; position:absolute; top:18px; right:18px; }
+    @keyframes spin { to { transform: rotate(360deg) } }
+    .card.rel { position:relative; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card rel">
+      <div class="loader" id="loader"></div>
+      <div class="brand">
+        <div class="logo">🏏</div>
+        <div style="font-weight:800; letter-spacing:.3px;">Cricket DBMS</div>
+      </div>
+      <h1>Welcome back</h1>
+      <form id="loginForm">
+        <label for="username">Username</label>
+        <input class="input" id="username" autocomplete="username" placeholder="Enter username" required />
+        <label for="password">Password</label>
+        <input class="input" id="password" type="password" autocomplete="current-password" placeholder="Enter password" required />
+        <div class="actions">
+          <div></div>
+          <button class="btn btn-primary" type="submit">Sign in</button>
+        </div>
+      </form>
+      <div id="err" class="error"></div>
+      <div id="ok" class="success"></div>
+      <div class="footer">
+        <span>Need an account? <a class="link" href="#" id="registerLink">Register</a></span>
+        <a class="link" href="#" id="resetLink">Forgot password?</a>
+      </div>
+      <div id="resetBox" style="display:none; margin-top:12px; padding-top:10px; border-top:1px solid #e5e7eb;">
+        <div style="font-weight:700; color:#374151; margin-bottom:6px;">Reset password (dev)</div>
+        <label for="resetToken">Reset token</label>
+        <input class="input" id="resetToken" placeholder="Paste token here" />
+        <label for="newPassword">New password</label>
+        <input class="input" id="newPassword" type="password" placeholder="Enter new password" />
+        <div class="actions" style="margin-top:10px;">
+          <div></div>
+          <button class="btn btn-primary" id="doResetBtn" type="button">Reset now</button>
+        </div>
+      </div>
+      <div class="note">Tip: default CORS allows local file usage. For deployments, set CORS_ORIGIN in .env.</div>
+    </div>
+  </div>
+  <script>
+    // API base URL with fallbacks and ?api= override
+    (function(){
+      const params = new URLSearchParams(location.search);
+      const q = params.get('api');
+      if (q) try { localStorage.setItem('API_BASE_URL', q); } catch(_) {}
+    })();
+    const API_BASE_URL = (localStorage.getItem('API_BASE_URL') || 'http://localhost:3000').replace(/\/$/, '');
+
+    const loader = document.getElementById('loader');
+    const $err = document.getElementById('err');
+    const $ok  = document.getElementById('ok');
+    function showLoader(b){ loader.style.display = b ? 'block' : 'none'; }
+    function showMsg(el, text){ el.textContent = text; el.style.display = 'block'; }
+    function hideMsgs(){ $err.style.display='none'; $ok.style.display='none'; }
+
+    async function call(endpoint, method='GET', data){
+      const url = API_BASE_URL + endpoint;
+      const opts = { method, headers: { 'Content-Type': 'application/json' }, mode: 'cors' };
+      if(data) opts.body = JSON.stringify(data);
+      let res;
+      try {
+        res = await fetch(url, opts);
+      } catch (e) {
+        throw new Error('Cannot reach API at ' + API_BASE_URL + ' — ensure server is running');
+      }
+      let json;
+      try { json = await res.json(); } catch(_) { throw new Error('Invalid response from API'); }
+      return json;
+    }
+
+    // Connectivity check
+    (async function(){
+      try {
+        const h = await fetch(API_BASE_URL + '/health', { mode:'cors' }).then(r=>r.ok?r.json():null);
+        if (!h) showMsg($err, 'API not reachable at ' + API_BASE_URL + '. Start the server and try again.');
+      } catch(_) { showMsg($err, 'API not reachable at ' + API_BASE_URL + '. Start the server and try again.'); }
+    })();
+    document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      hideMsgs();
+      showLoader(true);
+      try {
+        const out = await call('/api/auth/login','POST',{ username, password });
+        console.log('login response', out);
+        if(!out || !out.success){ throw new Error(out && out.error || 'Login failed'); }
+        const token = out.data.token;
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('currentUser', JSON.stringify(out.data.user||{}));
+        window.location.href = 'dbms.html';
+      } catch(err){
+        showMsg($err, err.message || 'Login failed');
+      } finally { showLoader(false); }
+    });
+    document.getElementById('registerLink').addEventListener('click', async (e)=>{
+      e.preventDefault();
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value;
+      if(!u || !p){ showMsg($err,'Enter username & password first'); return; }
+      showLoader(true);
+      try{
+        const out = await call('/api/auth/register','POST',{ username:u, password:p });
+        if(!out.success) throw new Error(out.error||'Register failed');
+        showMsg($ok,'Registered. You can sign in now.');
+      }catch(err){
+        showMsg($err, err.message || 'Register failed');
+      }finally{ showLoader(false); }
+    });
+    document.getElementById('resetLink').addEventListener('click', async (e)=>{
+      e.preventDefault();
+      const u = document.getElementById('username').value.trim();
+      if(!u){ showMsg($err,'Enter username to request reset'); return; }
+      showLoader(true);
+      try{
+        const out = await call('/api/auth/request-reset','POST',{ username:u });
+        if(!out.success) throw new Error(out.error||'Reset failed');
+        console.log('reset token response', out);
+        const msg = (out.data && out.data.token) ? ('Dev reset token: ' + out.data.token) : 'Reset link sent (dev mode)';
+        showMsg($ok, msg);
+        document.getElementById('resetBox').style.display = 'block';
+        if (out.data && out.data.token) document.getElementById('resetToken').value = out.data.token;
+      }catch(err){
+        showMsg($err, err.message || 'Reset failed');
+      }finally{ showLoader(false); }
+    });
+    document.getElementById('doResetBtn').addEventListener('click', async ()=>{
+      hideMsgs(); showLoader(true);
+      const username = document.getElementById('username').value.trim();
+      const token = (document.getElementById('resetToken').value||'').trim();
+      const newPassword = document.getElementById('newPassword').value;
+      if (!username || !token || !newPassword) { showMsg($err,'Fill username, token, and new password'); showLoader(false); return; }
+      try {
+        const out = await call('/api/auth/reset','POST',{ username, token, newPassword });
+        console.log('reset result', out);
+        if(!out.success) throw new Error(out.error||'Reset failed');
+        showMsg($ok,'Password reset. Sign in again.');
+      } catch (e) {
+        showMsg($err, e.message || 'Reset failed');
+      } finally { showLoader(false); }
+    });
+  </script>
+</body>
+</html>

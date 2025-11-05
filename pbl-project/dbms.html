@@ -1,0 +1,3050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Database Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        body.dark {
+            background: linear-gradient(135deg, #0f172a 0%, #1f2937 100%);
+            color: #e5e7eb;
+        }
+ 
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08));
+            border-radius: 15px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+        body.dark .header { background: rgba(255,255,255,0.06); backdrop-filter: none; }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-weight: 600;
+            backdrop-filter: blur(6px);
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.45);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+            position: relative;
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            left: 14px;
+            right: 14px;
+            bottom: -6px;
+            height: 3px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity .18s ease, transform .18s ease;
+        }
+        body.dark .tab-content { background: #121826; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: none; }
+
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input, .form-group select {
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        }
+        .btn-primary:hover { box-shadow: 0 8px 24px rgba(102,126,234,0.35); }
+        .btn-success:hover { box-shadow: 0 8px 24px rgba(86,171,47,0.35); }
+        .btn-danger:hover  { box-shadow: 0 8px 24px rgba(255,75,43,0.35); }
+
+        /* Chip-style secondary buttons */
+        .chip {
+            background: rgba(255,255,255,0.85);
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+        .chip:hover { background:#fff; box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+        body.dark .chip { background: rgba(255,255,255,0.06); color:#e5e7eb; border-color: rgba(255,255,255,0.12); }
+
+        .search-bar {
+            width: 100%;
+            padding: 15px 16px 15px 44px;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23838aa3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 14px center;
+        }
+        body.dark .search-bar { background: rgba(17,24,39,0.9); color: #e5e7eb; border-color: rgba(255,255,255,0.1); }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        body.dark .data-table { background: #0f1220; box-shadow: 0 5px 18px rgba(0,0,0,0.4); }
+
+        .data-table th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .data-table thead { box-shadow: 0 6px 12px rgba(0,0,0,0.06); }
+        body.dark .data-table th { background: linear-gradient(45deg, #4046c8, #7a3fb3); }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e1e5e9;
+        }
+        body.dark .data-table td { border-bottom: 1px solid rgba(255,255,255,0.08); color: #e5e7eb; }
+
+        /* Compact action buttons within tables */
+        .data-table .btn { padding: 6px 10px; border-radius: 10px; font-size: 13px; }
+        .data-table .btn-warning, .data-table .btn-danger { color:#fff; }
+
+        /* Numeric alignment and stat pills */
+        .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .stat-pill { display:inline-block; min-width: 30px; text-align:center; padding: 4px 8px; border-radius: 999px; font-weight:800; color:#fff; }
+        .stat-win { background: linear-gradient(135deg,#10b981,#22c55e); }
+        .stat-loss { background: linear-gradient(135deg,#ef4444,#f97316); }
+        .stat-draw { background: linear-gradient(135deg,#6b7280,#9ca3af); }
+
+        /* Badges for categorical fields */
+        .badge-pill { display:inline-block; padding:6px 10px; border-radius:999px; font-weight:700; }
+        .badge-country { background: rgba(59,130,246,0.12); color:#1d4ed8; }
+        .badge-winner { background: rgba(16,185,129,0.15); color:#065f46; }
+        .badge-bowler { background: rgba(236,72,153,0.15); color:#9d174d; }
+        body.dark .badge-country { background: rgba(59,130,246,0.18); color:#93c5fd; }
+        body.dark .badge-winner { background: rgba(16,185,129,0.22); color:#a7f3d0; }
+        body.dark .badge-bowler { background: rgba(236,72,153,0.22); color:#f9a8d4; }
+
+        /* Empty state */
+        .empty-state { padding: 18px; border-radius: 12px; background: rgba(0,0,0,0.03); color:#374151; }
+        body.dark .empty-state { background: rgba(255,255,255,0.06); color:#e5e7eb; }
+
+        .data-table tbody tr:nth-child(even) { background: rgba(102,126,234,0.03); }
+        .data-table tr:hover { background: rgba(102, 126, 234, 0.08); transition: background .18s ease; }
+
+        /* Sticky first column for better readability */
+        .data-table th:first-child, .data-table td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 1;
+        }
+        /* keep header gradient; only body cells get solid background */
+        .data-table td:first-child { background: white; box-shadow: 2px 0 0 rgba(0,0,0,0.04); }
+        body.dark .data-table td:first-child { background: #0f1220; box-shadow: 2px 0 0 rgba(255,255,255,0.05); }
+        .data-table thead th:first-child { z-index: 4; }
+
+        /* Badge styles */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: #fff;
+            font-weight: 600;
+        }
+        body.dark .badge { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); }
+
+        /* Focus styles for tabs */
+        .tab-btn:focus-visible { outline: 3px solid rgba(102,126,234,0.5); outline-offset: 2px; }
+
+        /* Users tab polish */
+        .user-cell { display:flex; align-items:center; gap:10px; }
+        .user-cell .avatar {
+            width: 30px; height: 30px; border-radius: 999px; color:#fff; font-weight:800; font-size:12px;
+            display:flex; align-items:center; justify-content:center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        .user-cell .uname { font-weight: 700; color:#374151; }
+        body.dark .user-cell .uname { color:#e5e7eb; }
+        .self-badge { padding:6px 10px; border-radius:999px; background:rgba(16,185,129,0.12); color:#065f46; font-weight:700; }
+        body.dark .self-badge { background: rgba(16,185,129,0.2); color:#a7f3d0; }
+        .role-select { padding:6px 10px; border-radius:8px; border:2px solid #e5e7eb; background:#fff; }
+        .role-select:focus { outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,0.15); }
+        body.dark .role-select { background:#0f1220; color:#e5e7eb; border-color: rgba(255,255,255,0.12); }
+
+        /* Page size select */
+        .form-select { border:2px solid #e5e7eb; border-radius:10px; background:#fff; padding:6px 10px; }
+        body.dark .form-select { background:#0f1220; color:#e5e7eb; border-color: rgba(255,255,255,0.12); }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78));
+            padding: 18px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+        }
+        body.dark .stat-card {
+            background: linear-gradient(135deg, #0f172a, #0b1220);
+            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+        }
+
+        .stat-card h3 {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 2.2rem;
+            margin-bottom: 6px;
+        }
+
+        .stat-card p {
+            color: #666;
+            font-weight: 600;
+        }
+        body.dark .stat-card p { color:#cbd5e1; }
+
+        /* Skeleton loading */
+        .skeleton { position: relative; color: transparent !important; }
+        .skeleton::after {
+            content: '';
+            position: absolute;
+            left: 0; top: 50%; transform: translateY(-50%);
+            height: 1.2em; width: 70%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, rgba(0,0,0,0.06), rgba(0,0,0,0.12), rgba(0,0,0,0.06));
+            animation: shimmer 1.2s infinite;
+        }
+        body.dark .skeleton::after { background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.12), rgba(255,255,255,0.06)); }
+        @keyframes shimmer { 0%{background-position:-200px 0} 100%{background-position:200px 0} }
+
+        /* Leaderboards */
+        .stat-card h3 { color:#4f46e5; letter-spacing:.2px; }
+        body.dark .stat-card h3 { color:#818cf8; }
+        .lb-list {
+            list-style: none;
+            margin: 10px 0 0 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .lb-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(102,126,234,0.06);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .lb-item:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,0.12); }
+        body.dark .lb-item { background: rgba(255,255,255,0.06); box-shadow: 0 6px 16px rgba(0,0,0,0.35); }
+        .lb-left { display:flex; align-items:center; gap:10px; }
+        .lb-rank { width: 28px; height: 28px; border-radius: 999px; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px; }
+        .lb-rank.r1 { background: linear-gradient(135deg, #f59e0b, #f97316); }
+        .lb-rank.r2 { background: linear-gradient(135deg, #9ca3af, #6b7280); }
+        .lb-rank.r3 { background: linear-gradient(135deg, #a16207, #ca8a04); }
+        .lb-rank.r4, .lb-rank.r5 { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .lb-name { font-weight: 700; color:#374151; }
+        body.dark .lb-name { color:#e5e7eb; }
+        .lb-value { font-weight: 800; color:#4f46e5; }
+        body.dark .lb-value { color:#a78bfa; }
+
+        .chart-container {
+            width: 100%;
+            height: 280px;
+            margin: 20px 0;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .chart-container canvas { width: 100% !important; height: 100% !important; display:block; }
+        @media (max-width: 768px) { .chart-container { height: 220px; } }
+        body.dark .chart-container { background: #0f1220; border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 18px 40px rgba(0,0,0,0.45); }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity .25s ease, transform .25s ease;
+        }
+        .alert.show { opacity: 1; transform: translateY(0); }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        body.dark .alert-success { background:#193b2d; color:#d1fae5; border:1px solid #065f46; }
+        body.dark .alert-error { background:#3f1d20; color:#fecaca; border:1px solid #7f1d1d; }
+
+        /* Compact density */
+        body.compact-rows .data-table th { padding: 10px; }
+        body.compact-rows .data-table td { padding: 8px 12px; }
+        body.compact-rows .btn { padding: 8px 14px; }
+        body.compact-rows .search-bar { padding: 10px; border-radius: 18px; }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .tab-btn {
+                width: 200px;
+            }
+        }
+
+        /* Loader overlay */
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(2px);
+        }
+        .loader-overlay.show { display: flex; }
+        .spinner {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.35);
+            border-top-color: #667eea;
+            animation: spin 0.9s linear infinite;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast progress */
+        .alert { position: fixed; }
+        .alert .progress {
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 3px;
+            background: rgba(0,0,0,0.15);
+            overflow: hidden;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+        .alert .progress > span {
+            display: block;
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            animation: toastbar 4.6s linear forwards;
+        }
+        @keyframes toastbar { from { width: 100%; } to { width: 0%; } }
+    </style>
+</head>
+<body>
+    <div id="appLoader" class="loader-overlay"><div class="spinner"></div></div>
+
+    <div class="container">
+        <div class="header">
+          <h1>🏏 Cricket Database Dashboard</h1>
+          <p>Comprehensive Cricket Team Management System</p>
+          <div style="position: absolute; top: 20px; right: 20px; display:flex; gap:8px; align-items:center;">
+            <span id="userInfo" class="badge" style="margin-right:10px;"></span>
+            <button id="themeToggle" class="btn" title="Toggle theme">🌙</button>
+            <button id="densityToggle" class="btn" title="Toggle density">↕</button>
+            <button id="logoutBtn" class="btn btn-danger" style="display:none;">Logout</button>
+          </div>
+          <div style="margin-top:12px; position: relative; max-width: 520px; margin-left:auto; margin-right:auto;">
+            <input id="globalSearch" type="text" class="search-bar" placeholder="🔎 Global search players... (type to search)" />
+            <div id="globalSearchResults" style="position:absolute; left:0; right:0; top:64px; background:#fff; border-radius:12px; box-shadow:0 10px 24px rgba(0,0,0,0.15); display:none; z-index:10; overflow:hidden;"></div>
+          </div>
+
+        </div>
+
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="showTab('dashboard', this)">Dashboard</button>
+            <button class="tab-btn" onclick="showTab('teams', this)">Teams</button>
+            <button class="tab-btn" onclick="showTab('players', this)">Players</button>
+            <button class="tab-btn" onclick="showTab('matches', this)">Matches</button>
+            <button class="tab-btn" onclick="showTab('umpires', this)">Umpires</button>
+            <button class="tab-btn" onclick="showTab('analytics', this)">Analytics</button>
+            <button class="tab-btn" onclick="showTab('queries', this)">Advanced Queries</button>
+            <button class="tab-btn" onclick="showTab('leaderboards', this)">Leaderboards</button>
+            <button id="usersTabBtn" class="tab-btn" onclick="showTab('users', this)" style="display:none;">Users</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <h2>📊 Dashboard Overview</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="totalTeams">5</h3>
+                    <p>Total Teams</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalPlayers">6</h3>
+                    <p>Total Players</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalMatches">5</h3>
+                    <p>Total Matches</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalUmpires">5</h3>
+                    <p>Total Umpires</p>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="teamWinsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Teams Tab -->
+        <div id="teams" class="tab-content">
+            <h2>🏆 Team Management</h2>
+            
+            <div style="display: flex; justify-content: between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <button id="btnAddTeam" class="btn btn-success" onclick="showAddTeamModal()">➕ Add New Team</button>
+                <button class="btn chip" onclick="loadTeams()">🔄 Refresh</button>
+                <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+                    <label style="color:#555; font-weight:600;">Page size</label>
+                    <select id="teamsPageSize" class="form-select" style="padding:8px;border-radius:8px;">
+                        <option>10</option><option>20</option><option>50</option>
+                    </select>
+                    <button class="btn chip" onclick="prevPage('teams')">◀ Prev</button>
+                    <span id="teamsPageInfo" style="color:#555;"></span>
+                    <button class="btn chip" onclick="nextPage('teams')">Next ▶</button>
+                    <input type="file" id="teamsImportInput" accept=".csv" style="display:none" />
+                    <button class="btn chip" onclick="document.getElementById('teamsImportInput').click()">📥 Import CSV</button>
+                    <button class="btn chip" onclick="exportCSV('teams')">📤 Export CSV</button>
+                </div>
+            </div>
+
+            <input type="text" class="search-bar" placeholder="🔍 Search teams..." oninput="filterTeams(this.value)">
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <input class="form-group" style="padding:8px;border-radius:8px;" placeholder="Country" oninput="setFilter('teams','country_name', this.value)">
+                <input class="form-group" style="padding:8px;border-radius:8px;" placeholder="Min Wins" type="number" oninput="setFilter('teams','no_of_wins_min', this.value)">
+                <input class="form-group" style="padding:8px;border-radius:8px;" placeholder="Max Losses" type="number" oninput="setFilter('teams','no_of_loses_max', this.value)">
+            </div>
+
+            <table class="data-table" id="teamsTable">
+                <thead>
+                    <tr>
+                        <th onclick="toggleSort('teams','team_id')">Team ID</th>
+                        <th onclick="toggleSort('teams','team_name')">Team Name</th>
+                        <th onclick="toggleSort('teams','country_name')">Country</th>
+                        <th onclick="toggleSort('teams','team_rank')">Rank</th>
+                        <th onclick="toggleSort('teams','no_of_wins')">Wins</th>
+                        <th onclick="toggleSort('teams','no_of_loses')">Losses</th>
+                        <th onclick="toggleSort('teams','no_of_draws')">Draws</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="teamsTableBody">
+                    <!-- Teams data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Players Tab -->
+        <div id="players" class="tab-content">
+            <h2>👤 Player Management</h2>
+            
+            <div style="display: flex; justify-content: between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <button id="btnAddPlayer" class="btn btn-success" onclick="showAddPlayerModal()">➕ Add New Player</button>
+                <button class="btn chip" onclick="loadPlayers()">🔄 Refresh</button>
+                <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+                    <label style="color:#555; font-weight:600;">Page size</label>
+                    <select id="playersPageSize" class="form-select" style="padding:8px;border-radius:8px;">
+                        <option>10</option><option>20</option><option>50</option>
+                    </select>
+                    <button class="btn chip" onclick="prevPage('players')">◀ Prev</button>
+                    <span id="playersPageInfo" style="color:#555;"></span>
+                    <button class="btn chip" onclick="nextPage('players')">Next ▶</button>
+                    <input type="file" id="playersImportInput" accept=".csv" style="display:none" />
+                    <button class="btn chip" onclick="document.getElementById('playersImportInput').click()">📥 Import CSV</button>
+                    <button class="btn chip" onclick="exportCSV('players')">📤 Export CSV</button>
+                </div>
+            </div>
+
+            <input type="text" class="search-bar" placeholder="🔍 Search players..." oninput="filterPlayers(this.value)">
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <input class="form-group" style="padding:8px;border-radius:8px;" placeholder="Team ID" oninput="setFilter('players','team_id', this.value)">
+                <input class="form-group" style="padding:8px;border-radius:8px;" placeholder="Min Runs" type="number" oninput="setFilter('players','no_of_totalruns_min', this.value)">
+                <input class="form-group" style="padding:8px;border-radius:8px;" placeholder="Min Wickets" type="number" oninput="setFilter('players','no_of_wickets_min', this.value)">
+            </div>
+
+            <table class="data-table" id="playersTable">
+                <thead>
+                    <tr>
+                        <th onclick="toggleSort('players','player_id')">Player ID</th>
+                        <th onclick="toggleSort('players','player_name')">Name</th>
+                        <th onclick="toggleSort('players','team_id')">Team ID</th>
+                        <th onclick="toggleSort('players','batting_average')">Batting Avg</th>
+                        <th onclick="toggleSort('players','no_of_totalruns')">Total Runs</th>
+                        <th onclick="toggleSort('players','no_of_wickets')">Wickets</th>
+                        <th onclick="toggleSort('players','type_of_bowler')">Bowler Type</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="playersTableBody">
+                    <!-- Players data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Matches Tab -->
+        <div id="matches" class="tab-content">
+            <h2>🏏 Match Management</h2>
+            
+            <div style="display: flex; justify-content: between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <button id="btnAddMatch" class="btn btn-success" onclick="showAddMatchModal()">➕ Add New Match</button>
+                <button class="btn chip" onclick="loadMatches()">🔄 Refresh</button>
+                <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+                    <label style="color:#555; font-weight:600;">Page size</label>
+                    <select id="matchesPageSize" class="form-select" style="padding:8px;border-radius:8px;">
+                        <option>10</option><option>20</option><option>50</option>
+                    </select>
+                    <button class="btn chip" onclick="prevPage('matches')">◀ Prev</button>
+                    <span id="matchesPageInfo" style="color:#555;"></span>
+                    <button class="btn chip" onclick="nextPage('matches')">Next ▶</button>
+                </div>
+            </div>
+
+            <input type="text" class="search-bar" placeholder="🔍 Search matches..." oninput="filterMatches(this.value)">
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <input class="form-group" style="padding:8px;border-radius:8px;" placeholder="Team contains" oninput="setFilter('matches','team_name', this.value)">
+                <input class="form-group" style="padding:8px;border-radius:8px;" placeholder="Winner" oninput="setFilter('matches','winner', this.value)">
+            </div>
+
+            <table class="data-table" id="matchesTable">
+                <thead>
+                    <tr>
+                        <th onclick="toggleSort('matches','match_id')">Match ID</th>
+                        <th onclick="toggleSort('matches','match_date')">Date</th>
+                        <th onclick="toggleSort('matches','match_time')">Time</th>
+                        <th onclick="toggleSort('matches','team_1_name')">Team 1</th>
+                        <th onclick="toggleSort('matches','team_2_name')">Team 2</th>
+                        <th onclick="toggleSort('matches','winner')">Winner</th>
+                        <th onclick="toggleSort('matches','stadium')">Stadium</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="matchesTableBody">
+                    <!-- Matches data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Umpires Tab -->
+        <div id="umpires" class="tab-content">
+            <h2>👨‍⚖ Umpire Management</h2>
+            
+            <div style="display: flex; justify-content: between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <button id="btnAddUmpire" class="btn btn-success" onclick="showAddUmpireModal()">➕ Add New Umpire</button>
+                <button class="btn chip" onclick="loadUmpires()">🔄 Refresh</button>
+                <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+                    <label style="color:#555; font-weight:600;">Page size</label>
+                    <select id="umpiresPageSize" class="form-select" style="padding:8px;border-radius:8px;">
+                        <option>10</option><option>20</option><option>50</option>
+                    </select>
+                    <button class="btn chip" onclick="prevPage('umpires')">◀ Prev</button>
+                    <span id="umpiresPageInfo" style="color:#555;"></span>
+                    <button class="btn chip" onclick="nextPage('umpires')">Next ▶</button>
+                </div>
+            </div>
+
+            <input type="text" class="search-bar" placeholder="🔍 Search umpires..." oninput="filterUmpires(this.value)">
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <input class="form-group" style="padding:8px;border-radius:8px;" placeholder="Country" oninput="setFilter('umpires','country', this.value)">
+                <input class="form-group" style="padding:8px;border-radius:8px;" placeholder="Min Matches" type="number" oninput="setFilter('umpires','no_of_matches_min', this.value)">
+            </div>
+
+            <table class="data-table" id="umpiresTable">
+                <thead>
+                    <tr>
+                        <th onclick="toggleSort('umpires','umpire_id')">Umpire ID</th>
+                        <th onclick="toggleSort('umpires','umpire_name')">Name</th>
+                        <th onclick="toggleSort('umpires','country')">Country</th>
+                        <th onclick="toggleSort('umpires','no_of_matches')">Matches</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="umpiresTableBody">
+                    <!-- Umpires data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <h2>📈 Analytics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="avgBattingAvg">45.7</h3>
+                    <p>Average Batting Average</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalRuns">2377</h3>
+                    <p>Total Runs Scored</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalWickets">12</h3>
+                    <p>Total Wickets</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="avgEconomy">11.3</h3>
+                    <p>Average Economy</p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="chart-container">
+                    <canvas id="playerRunsChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="bowlerTypesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboards Tab -->
+        <div id="leaderboards" class="tab-content">
+            <h2>🏅 Leaderboards</h2>
+            <div class="stats-grid">
+                <div class="stat-card"><h3>Top Runs</h3><div id="lbTopRuns"></div></div>
+                <div class="stat-card"><h3>Top Wickets</h3><div id="lbTopWickets"></div></div>
+                <div class="stat-card"><h3>Best Averages</h3><div id="lbBestAvg"></div></div>
+                <div class="stat-card"><h3>Best Economy</h3><div id="lbBestEcon"></div></div>
+            </div>
+        </div>
+
+        <!-- Users (Admin) Tab -->
+        <div id="users" class="tab-content">
+            <h2>👥 User Management</h2>
+            <table class="data-table" id="usersTable">
+                <thead>
+                    <tr><th>Username</th><th>Role</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="usersTableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Advanced Queries Tab -->
+        <div id="queries" class="tab-content">
+            <h2>🔍 Advanced Queries</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                <button class="btn btn-primary" onclick="runQuery('topBatsmen')">🏏 Top Batsmen (Avg > 60)</button>
+                <button class="btn btn-primary" onclick="runQuery('fastBowlers')">⚡ Fast Bowlers</button>
+                <button class="btn btn-primary" onclick="runQuery('experiencedUmpires')">👨‍⚖ Experienced Umpires (>100 matches)</button>
+                <button class="btn btn-primary" onclick="runQuery('teamWinRates')">📊 Team Win Rates</button>
+                <button class="btn btn-primary" onclick="runQuery('playersWithHighSixes')">🚀 Players with Most Sixes</button>
+                <button class="btn btn-primary" onclick="runQuery('recentMatches')">📅 Recent Matches (2011)</button>
+            </div>
+
+            <div id="queryResults" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="authModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3 id="authTitle">Login</h3>
+            <div id="authForms">
+                <form id="loginForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Username:</label>
+                            <input type="text" id="loginUsername" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password:</label>
+                            <input type="password" id="loginPassword" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <button type="button" class="btn" id="showRegisterBtn">Create account</button>
+                    <button type="button" class="btn" id="showResetRequestBtn">Forgot password?</button>
+                </form>
+                <form id="registerForm" style="display:none;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Username:</label>
+                            <input type="text" id="registerUsername" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password:</label>
+                            <input type="password" id="registerPassword" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">Register</button>
+                    <button type="button" class="btn" id="showLoginBtn">Back to login</button>
+                </form>
+                <form id="resetRequestForm" style="display:none; margin-top:10px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Username:</label>
+                            <input type="text" id="resetReqUsername">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Get reset token</button>
+                    <button type="button" class="btn" id="backToLoginFromReq">Back</button>
+                </form>
+                <form id="resetForm" style="display:none; margin-top:10px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Username:</label>
+                            <input type="text" id="resetUsername">
+                        </div>
+                        <div class="form-group">
+                            <label>Token:</label>
+                            <input type="text" id="resetToken">
+                        </div>
+                        <div class="form-group">
+                            <label>New Password:</label>
+                            <input type="password" id="resetNewPassword">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">Reset Password</button>
+                    <button type="button" class="btn" id="backToLoginFromReset">Back</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="addTeamModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addTeamModal')">&times;</span>
+            <h3>Add New Team</h3>
+            <form id="addTeamForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Team ID:</label>
+                        <input type="text" id="teamId" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Team Name:</label>
+                        <input type="text" id="teamName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Country:</label>
+                        <input type="text" id="countryName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Rank:</label>
+                        <input type="number" id="teamRank" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Wins:</label>
+                        <input type="number" id="noOfWins" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Losses:</label>
+                        <input type="number" id="noOfLoses" min="0" value="0">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Add Team</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('addTeamModal')">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="addPlayerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addPlayerModal')">&times;</span>
+            <h3>Add New Player</h3>
+            <form id="addPlayerForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Player ID:</label>
+                        <input type="text" id="playerId" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Player Name:</label>
+                        <input type="text" id="playerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Team ID:</label>
+                        <select id="playerTeamId" required>
+                            <option value="">Select Team</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Batting Average:</label>
+                        <input type="number" step="0.01" id="battingAverage">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Runs:</label>
+                        <input type="number" id="totalRuns" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Bowler Type:</label>
+                        <select id="bowlerType">
+                            <option value="">Select Type</option>
+                            <option value="fast">Fast</option>
+                            <option value="medium">Medium</option>
+                            <option value="medium-slow">Medium-Slow</option>
+                            <option value="slow">Slow</option>
+                            <option value="legspin">Leg Spin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Economy:</label>
+                        <input type="number" step="0.01" id="economy" placeholder="e.g. 7.25">
+                    </div>
+                    <div class="form-group">
+                        <label>No. of Sixes:</label>
+                        <input type="number" id="noOfSixes" min="0" value="0">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Add Player</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('addPlayerModal')">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="addMatchModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addMatchModal')">&times;</span>
+            <h3>Add New Match</h3>
+            <form id="addMatchForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Match ID:</label>
+                        <input type="text" id="matchId" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date:</label>
+                        <input type="date" id="matchDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Time:</label>
+                        <input type="time" id="matchTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Team 1:</label>
+                        <input type="text" id="team1Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Team 2:</label>
+                        <input type="text" id="team2Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Winner:</label>
+                        <input type="text" id="winner" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Stadium:</label>
+                        <input type="text" id="stadium" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Add Match</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('addMatchModal')">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="addUmpireModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addUmpireModal')">&times;</span>
+            <h3>Add New Umpire</h3>
+            <form id="addUmpireForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Umpire ID:</label>
+                        <input type="text" id="umpireId" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Umpire Name:</label>
+                        <input type="text" id="umpireName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Country:</label>
+                        <input type="text" id="umpireCountry" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Matches:</label>
+                        <input type="number" id="noOfMatches" min="0" value="0" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Add Umpire</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('addUmpireModal')">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Modals -->
+    <div id="editTeamModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editTeamModal')">&times;</span>
+            <h3>Edit Team</h3>
+            <form id="editTeamForm">
+                <input type="hidden" id="editTeamId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Team ID:</label>
+                        <input type="text" id="editTeamIdDisplay" readonly style="background-color: #f0f0f0;">
+                    </div>
+                    <div class="form-group">
+                        <label>Team Name:</label>
+                        <input type="text" id="editTeamName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Country:</label>
+                        <input type="text" id="editCountryName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Rank:</label>
+                        <input type="number" id="editTeamRank" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Wins:</label>
+                        <input type="number" id="editNoOfWins" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Losses:</label>
+                        <input type="number" id="editNoOfLoses" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Draws:</label>
+                        <input type="number" id="editNoOfDraws" min="0" value="0">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Update Team</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('editTeamModal')">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="editPlayerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editPlayerModal')">&times;</span>
+            <h3>Edit Player</h3>
+            <form id="editPlayerForm">
+                <input type="hidden" id="editPlayerId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Player ID:</label>
+                        <input type="text" id="editPlayerIdDisplay" readonly style="background-color: #f0f0f0;">
+                    </div>
+                    <div class="form-group">
+                        <label>Player Name:</label>
+                        <input type="text" id="editPlayerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Team ID:</label>
+                        <select id="editPlayerTeamId" required>
+                            <option value="">Select Team</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Batting Average:</label>
+                        <input type="number" step="0.01" id="editBattingAverage">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Runs:</label>
+                        <input type="number" id="editTotalRuns" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Wickets:</label>
+                        <input type="number" id="editNoOfWickets" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Bowler Type:</label>
+                        <select id="editBowlerType">
+                            <option value="">Select Type</option>
+                            <option value="fast">Fast</option>
+                            <option value="medium">Medium</option>
+                            <option value="medium-slow">Medium-Slow</option>
+                            <option value="slow">Slow</option>
+                            <option value="legspin">Leg Spin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>No. of Sixes:</label>
+                        <input type="number" id="editNoOfSixes" min="0" value="0">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Update Player</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('editPlayerModal')">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="editMatchModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editMatchModal')">&times;</span>
+            <h3>Edit Match</h3>
+            <form id="editMatchForm">
+                <input type="hidden" id="editMatchId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Match ID:</label>
+                        <input type="text" id="editMatchIdDisplay" readonly style="background-color: #f0f0f0;">
+                    </div>
+                    <div class="form-group">
+                        <label>Date:</label>
+                        <input type="date" id="editMatchDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Time:</label>
+                        <input type="time" id="editMatchTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Team 1:</label>
+                        <input type="text" id="editTeam1Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Team 2:</label>
+                        <input type="text" id="editTeam2Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Winner:</label>
+                        <input type="text" id="editWinner" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Stadium:</label>
+                        <input type="text" id="editStadium" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Update Match</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('editMatchModal')">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="editUmpireModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editUmpireModal')">&times;</span>
+            <h3>Edit Umpire</h3>
+            <form id="editUmpireForm">
+                <input type="hidden" id="editUmpireId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Umpire ID:</label>
+                        <input type="text" id="editUmpireIdDisplay" readonly style="background-color: #f0f0f0;">
+                    </div>
+                    <div class="form-group">
+                        <label>Umpire Name:</label>
+                        <input type="text" id="editUmpireName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Country:</label>
+                        <input type="text" id="editUmpireCountry" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Matches:</label>
+                        <input type="number" id="editNoOfMatches" min="0" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Update Umpire</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('editUmpireModal')">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration (align with login.html)
+        const __apiBase = (localStorage.getItem('API_BASE_URL') || 'http://localhost:3000').replace(/\/$/, '');
+        const API_BASE_URL = __apiBase + '/api';
+        let authToken = localStorage.getItem('authToken') || localStorage.getItem('token') || null;
+        let currentUser = null;
+        // Data storage (will be populated from API)
+        let teamsData = [];
+        let playersData = [];
+        let matchesData = [];
+        let umpiresData = [];
+        let playersDataAll = [];
+
+        // Loader state (ref-counted to handle parallel calls)
+        let __loaderCount = 0;
+        function showLoader() {
+            __loaderCount = Math.max(0, __loaderCount + 1);
+            const el = document.getElementById('appLoader');
+            if (el) el.classList.add('show');
+        }
+        function hideLoader() {
+            __loaderCount = Math.max(0, __loaderCount - 1);
+            if (__loaderCount === 0) {
+                const el = document.getElementById('appLoader');
+                if (el) el.classList.remove('show');
+            }
+        }
+
+        const paging = {
+            teams: { page: 0, size: 10, sort: null, order: 'asc', total: 0 },
+            players: { page: 0, size: 10, sort: null, order: 'asc', total: 0 },
+            matches: { page: 0, size: 10, sort: null, order: 'asc', total: 0 },
+            umpires: { page: 0, size: 10, sort: null, order: 'asc', total: 0 },
+        };
+
+        const filters = {
+            teams: {},
+            players: {},
+            matches: {},
+            umpires: {}
+        };
+
+        function setFilter(entity, key, value) {
+            filters[entity][key] = value;
+            reloadEntity(entity);
+        }
+
+        function isAdmin() { return currentUser && currentUser.role === 'admin'; }
+
+        function getChartPalette() {
+            const dark = document.body.classList.contains('dark');
+            return {
+                grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                ticks: dark ? '#e5e7eb' : '#475569',
+                label: dark ? '#e5e7eb' : '#334155',
+                dataset: {
+                    primary: dark ? 'rgba(99,102,241,0.7)' : 'rgba(99,102,241,0.7)',
+                    secondary: dark ? 'rgba(236,72,153,0.7)' : 'rgba(236,72,153,0.7)'
+                }
+            };
+        }
+
+        // Generic API function
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            showLoader();
+            try {
+                const options = { method, headers: { 'Content-Type': 'application/json' } };
+                if (data) options.body = JSON.stringify(data);
+                if (authToken) options.headers['Authorization'] = `Bearer ${authToken}`;
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+                if (response.status === 401) {
+                    try { localStorage.removeItem('authToken'); localStorage.removeItem('token'); } catch(_){}
+                    window.location.href = 'login.html';
+                    return;
+                }
+                // Robust JSON parse (handle empty or non-JSON bodies)
+                const ct = (response.headers.get('content-type')||'').toLowerCase();
+                const raw = await response.text();
+                const result = ct.includes('application/json') && raw ? JSON.parse(raw) : { success: response.ok };
+                if (!result.success) throw new Error(result.error || 'API request failed');
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                showAlert(error.message || 'Network error occurred', 'error');
+                throw error;
+            } finally {
+                hideLoader();
+            }
+        }
+
+        // ============ AUTH ============
+        function showAuthModal(showRegister = false) {
+            const modal = document.getElementById('authModal');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const title = document.getElementById('authTitle');
+            if (showRegister) {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                title.textContent = 'Create Account';
+            } else {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                title.textContent = 'Login';
+            }
+            modal.style.display = 'block';
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+        }
+
+        async function handleLogin(username, password) {
+            const res = await apiCall('/auth/login', 'POST', { username, password });
+            authToken = res.data.token;
+            localStorage.setItem('token', authToken);
+            currentUser = res.data.user || null;
+            hideAuthModal();
+            document.getElementById('logoutBtn').style.display = '';
+            await initApp();
+        }
+
+        async function handleRegister(username, password) {
+            await apiCall('/auth/register', 'POST', { username, password });
+            showAlert('Account created. Logging you in...', 'success');
+            await handleLogin(username, password);
+        }
+
+        async function handleLogout() {
+            try { await apiCall('/auth/logout', 'POST'); } catch (_) {}
+            // Clear auth and user state in memory and storage
+            authToken = null;
+            currentUser = null;
+            try {
+                localStorage.removeItem('token');
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+            } catch(_) {}
+            // Update UI state
+            const $logout = document.getElementById('logoutBtn');
+            if ($logout) $logout.style.display = 'none';
+            const $info = document.getElementById('userInfo');
+            if ($info) $info.textContent = '';
+            // clear local data and charts
+            teamsData = []; playersData = []; matchesData = []; umpiresData = [];
+            if (window.teamWinsChart && typeof window.teamWinsChart.destroy === 'function') window.teamWinsChart.destroy();
+            if (window.playerRunsChart && typeof window.playerRunsChart.destroy === 'function') window.playerRunsChart.destroy();
+            if (window.bowlerTypesChart && typeof window.bowlerTypesChart.destroy === 'function') window.bowlerTypesChart.destroy();
+            updateDashboardStats();
+            // Hard redirect to login for a clean state
+            window.location.href = 'login.html';
+        }
+
+        function applyRoleUI() {
+            const info = document.getElementById('userInfo');
+            const isViewer = !currentUser || currentUser.role === 'viewer';
+            info.textContent = currentUser ? `${currentUser.username} (${currentUser.role})` : '';
+            const addButtons = ['btnAddTeam','btnAddPlayer','btnAddMatch','btnAddUmpire'];
+            addButtons.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = isViewer ? 'none' : '';
+            });
+            const usersTabBtn = document.getElementById('usersTabBtn');
+            if (usersTabBtn) usersTabBtn.style.display = (!isViewer && currentUser && currentUser.role === 'admin') ? '' : 'none';
+        }
+
+        async function initApp() {
+            if (!authToken) {
+                document.getElementById('logoutBtn').style.display = 'none';
+                window.location.href = 'login.html';
+                return;
+            }
+            document.getElementById('logoutBtn').style.display = '';
+            try {
+                const me = await apiCall('/auth/me');
+                currentUser = me.data;
+            } catch (e) {
+                // token invalid; force logout
+                await handleLogout();
+                return;
+            }
+            applyRoleUI();
+            // default page sizes
+            ['teams','players','matches','umpires'].forEach(ent=>{
+                const sel = document.getElementById(`${ent}PageSize`);
+                if (sel) sel.value = String(paging[ent].size);
+            });
+            setStatsLoading(true);
+            await Promise.all([
+                loadTeams(),
+                loadPlayers(),
+                loadMatches(),
+                loadUmpires(),
+                loadAnalytics(),
+                loadPlayersAll()
+            ]);
+            updateDashboardStats();
+            createTeamWinsChart();
+            refreshLeaderboards();
+        }
+
+        function updatePageInfo(entity) {
+            const p = paging[entity];
+            const info = document.getElementById(`${entity}PageInfo`);
+            if (!info) return;
+            const start = p.total === 0 ? 0 : p.page * p.size + 1;
+            const end = Math.min((p.page + 1) * p.size, p.total);
+            info.textContent = `${start}-${end} of ${p.total}`;
+        }
+
+        function nextPage(entity) {
+            const p = paging[entity];
+            if ((p.page + 1) * p.size >= p.total) return;
+            p.page += 1;
+            reloadEntity(entity);
+        }
+
+        function prevPage(entity) {
+            const p = paging[entity];
+            if (p.page === 0) return;
+            p.page -= 1;
+            reloadEntity(entity);
+        }
+
+        function toggleSort(entity, sortCol) {
+            const p = paging[entity];
+            if (p.sort === sortCol) {
+                p.order = p.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                p.sort = sortCol; p.order = 'asc';
+            }
+            p.page = 0;
+            reloadEntity(entity);
+            updateSortIndicators(entity);
+        }
+
+        function reloadEntity(entity) {
+            switch(entity) {
+                case 'teams': return loadTeams();
+                case 'players': return loadPlayers();
+                case 'matches': return loadMatches();
+                case 'umpires': return loadUmpires();
+                case 'users': return loadUsers();
+            }
+        }
+
+        function updateSortIndicators(entity) {
+            const map = {
+                teams: '#teams thead th',
+                players: '#players thead th',
+                matches: '#matches thead th',
+                umpires: '#umpires thead th'
+            };
+            const sel = map[entity];
+            if (!sel) return;
+            const p = paging[entity];
+            document.querySelectorAll(sel).forEach(th => {
+                const original = th.textContent.replace(/[\s▲▼]+$/, '');
+                const oc = th.getAttribute('onclick') || '';
+                const fieldMatch = (oc.match(/toggleSort\('[^']+',\s*'([^']+)'\)/) || [])[1];
+                if (fieldMatch && fieldMatch === p.sort) {
+                    th.textContent = `${original} ${p.order === 'asc' ? '▲' : '▼'}`;
+                } else {
+                    th.textContent = original;
+                }
+            });
+        }
+
+        // CSV helpers
+        function toCSV(rows, headers) {
+            const esc = v => (v==null?'':String(v).replaceAll('"','""'));
+            const lines = [headers.join(',')];
+            rows.forEach(r=>{
+                lines.push(headers.map(h=>`"${esc(r[h])}"`).join(','));
+            });
+            return lines.join('\n');
+        }
+
+        function download(filename, text) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([text], {type:'text/csv'}));
+            a.download = filename; a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function exportCSV(entity) {
+            if (entity === 'teams') {
+                const headers = ['team_id','team_name','country_name','team_rank','no_of_wins','no_of_loses','no_of_draws'];
+                download('teams.csv', toCSV(teamsData, headers));
+            } else if (entity === 'players') {
+                const headers = ['player_id','player_name','team_id','batting_average','no_of_totalruns','no_of_wickets','type_of_bowler','no_of_sixes','economy'];
+                download('players.csv', toCSV(playersData, headers));
+            }
+        }
+
+        function parseCSV(text) {
+            const [headerLine, ...lines] = text.split(/\r?\n/).filter(Boolean);
+            const headers = headerLine.split(',').map(h=>h.trim());
+            return lines.map(line=>{
+                const cols = line.split(',');
+                const obj = {}; headers.forEach((h,i)=> obj[h] = cols[i] !== undefined ? cols[i].replace(/^"|"$/g,'') : '');
+                return obj;
+            });
+        }
+
+        // ============ TEAMS API FUNCTIONS ============
+
+        async function loadTeams() {
+            try {
+                const ps = document.getElementById('teamsPageSize');
+                if (ps) paging.teams.size = parseInt(ps.value) || 10;
+                const p = paging.teams;
+                const offset = p.page * p.size;
+                const qp = new URLSearchParams({ limit: String(p.size), offset: String(offset) });
+                if (p.sort) { qp.set('sort', p.sort); qp.set('order', p.order); }
+                const result = await apiCall(`/teams?${qp.toString()}`);
+                const payload = result.data;
+                teamsData = payload.items || payload || [];
+                p.total = payload.total !== undefined ? payload.total : teamsData.length;
+                refreshTeams();
+                if (window.teamWinsChart && typeof window.teamWinsChart.destroy === 'function') {
+                    window.teamWinsChart.destroy();
+                }
+                updateDashboardStats();
+                createTeamWinsChart();
+                updatePageInfo('teams');
+            } catch (error) {
+                console.error('Failed to load teams:', error);
+            }
+        }
+
+        async function addTeam(teamData) {
+            try {
+                await apiCall('/teams', 'POST', teamData);
+                await loadTeams();
+                showAlert('Team added successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to add team:', error);
+            }
+        }
+
+        async function updateTeam(teamId, teamData) {
+            try {
+                await apiCall(`/teams/${teamId}`, 'PUT', teamData);
+                await loadTeams();
+                showAlert('Team updated successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to update team:', error);
+            }
+        }
+
+        async function deleteTeamAPI(teamId) {
+            try {
+                await apiCall(`/teams/${teamId}`, 'DELETE');
+                await loadTeams();
+                showAlert('Team deleted successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to delete team:', error);
+            }
+        }
+
+        // ============ PLAYERS API FUNCTIONS ============
+
+        async function loadPlayers() {
+            try {
+                const ps = document.getElementById('playersPageSize');
+                if (ps) paging.players.size = parseInt(ps.value) || 10;
+                const p = paging.players;
+                const offset = p.page * p.size;
+                const qp = new URLSearchParams({ limit: String(p.size), offset: String(offset) });
+                if (p.sort) { qp.set('sort', p.sort); qp.set('order', p.order); }
+                const result = await apiCall(`/players?${qp.toString()}`);
+                const payload = result.data;
+                playersData = payload.items || payload || [];
+                p.total = payload.total !== undefined ? payload.total : playersData.length;
+                refreshPlayers();
+                updateDashboardStats();
+                if (window.playerRunsChart && typeof window.playerRunsChart.destroy === 'function') {
+                    window.playerRunsChart.destroy();
+                }
+                if (window.bowlerTypesChart && typeof window.bowlerTypesChart.destroy === 'function') {
+                    window.bowlerTypesChart.destroy();
+                }
+                updateAnalytics();
+                createAnalyticsCharts();
+                updatePageInfo('players');
+                // keep leaderboards fresh even if full dataset not loaded yet
+                refreshLeaderboards();
+            } catch (error) {
+                console.error('Failed to load players:', error);
+            }
+        }
+
+        async function addPlayer(playerData) {
+            try {
+                await apiCall('/players', 'POST', playerData);
+                await loadPlayers();
+                showAlert('Player added successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to add player:', error);
+            }
+        }
+
+        async function updatePlayer(playerId, playerData) {
+            try {
+                await apiCall(`/players/${playerId}`, 'PUT', playerData);
+                await loadPlayers();
+                showAlert('Player updated successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to update player:', error);
+            }
+        }
+
+        async function deletePlayerAPI(playerId) {
+            try {
+                await apiCall(`/players/${playerId}`, 'DELETE');
+                await loadPlayers();
+                showAlert('Player deleted successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to delete player:', error);
+            }
+        }
+
+        // ============ MATCHES API FUNCTIONS ============
+
+        async function loadMatches() {
+            try {
+                const ps = document.getElementById('matchesPageSize');
+                if (ps) paging.matches.size = parseInt(ps.value) || 10;
+                const p = paging.matches;
+                const offset = p.page * p.size;
+                const qp = new URLSearchParams({ limit: String(p.size), offset: String(offset) });
+                if (p.sort) { qp.set('sort', p.sort); qp.set('order', p.order); }
+                const result = await apiCall(`/matches?${qp.toString()}`);
+                const payload = result.data;
+                matchesData = payload.items || payload || [];
+                p.total = payload.total !== undefined ? payload.total : matchesData.length;
+                refreshMatches();
+                updateDashboardStats();
+                updatePageInfo('matches');
+            } catch (error) {
+                console.error('Failed to load matches:', error);
+            }
+        }
+
+        async function addMatch(matchData) {
+            try {
+                await apiCall('/matches', 'POST', matchData);
+                await loadMatches();
+                showAlert('Match added successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to add match:', error);
+            }
+        }
+
+        async function updateMatch(matchId, matchData) {
+            try {
+                await apiCall(`/matches/${matchId}`, 'PUT', matchData);
+                await loadMatches();
+                showAlert('Match updated successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to update match:', error);
+            }
+        }
+
+        async function deleteMatchAPI(matchId) {
+            try {
+                await apiCall(`/matches/${matchId}`, 'DELETE');
+                await loadMatches();
+                showAlert('Match deleted successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to delete match:', error);
+            }
+        }
+
+        // ============ UMPIRES API FUNCTIONS ============
+
+        async function loadUmpires() {
+            try {
+                const ps = document.getElementById('umpiresPageSize');
+                if (ps) paging.umpires.size = parseInt(ps.value) || 10;
+                const p = paging.umpires;
+                const offset = p.page * p.size;
+                const qp = new URLSearchParams({ limit: String(p.size), offset: String(offset) });
+                if (p.sort) { qp.set('sort', p.sort); qp.set('order', p.order); }
+                const result = await apiCall(`/umpires?${qp.toString()}`);
+                const payload = result.data;
+                umpiresData = payload.items || payload || [];
+                p.total = payload.total !== undefined ? payload.total : umpiresData.length;
+                refreshUmpires();
+                updateDashboardStats();
+                updatePageInfo('umpires');
+            } catch (error) {
+                console.error('Failed to load umpires:', error);
+            }
+        }
+
+        async function loadPlayersAll() {
+            try {
+                const res = await apiCall('/players');
+                playersDataAll = res.data || [];
+                refreshLeaderboards();
+            } catch (e) { console.error('Failed to load all players', e); }
+        }
+
+        async function addUmpire(umpireData) {
+            try {
+                await apiCall('/umpires', 'POST', umpireData);
+                await loadUmpires();
+                showAlert('Umpire added successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to add umpire:', error);
+            }
+        }
+
+        async function updateUmpire(umpireId, umpireData) {
+            try {
+                await apiCall(`/umpires/${umpireId}`, 'PUT', umpireData);
+                await loadUmpires();
+                showAlert('Umpire updated successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to update umpire:', error);
+            }
+        }
+
+        async function deleteUmpireAPI(umpireId) {
+            try {
+                await apiCall(`/umpires/${umpireId}`, 'DELETE');
+                await loadUmpires();
+                showAlert('Umpire deleted successfully!', 'success');
+            } catch (error) {
+                console.error('Failed to delete umpire:', error);
+            }
+        }
+
+        // ============ ANALYTICS API FUNCTION ============
+
+        async function loadAnalytics() {
+            try {
+                const result = await apiCall('/analytics/stats');
+                const stats = result.data;
+                
+                document.getElementById('totalTeams').textContent = stats.totalTeams || 0;
+                document.getElementById('totalPlayers').textContent = stats.totalPlayers || 0;
+                document.getElementById('totalMatches').textContent = stats.totalMatches || 0;
+                document.getElementById('totalUmpires').textContent = stats.totalUmpires || 0;
+                document.getElementById('avgBattingAvg').textContent = stats.avgBattingAvg || '0.00';
+                document.getElementById('totalRuns').textContent = stats.totalRuns || 0;
+                document.getElementById('totalWickets').textContent = stats.totalWickets || 0;
+                setStatsLoading(false);
+            } catch (error) {
+                console.error('Failed to load analytics:', error);
+                setStatsLoading(false);
+            }
+        }
+
+        // Prefer server-provided leaderboards when available
+        async function loadLeaderboardsServer() {
+            try {
+                const res = await apiCall('/analytics/leaderboards');
+                const data = res && res.data ? res.data : null;
+                if (!data) return;
+                const elRuns = document.getElementById('lbTopRuns');
+                const elWkts = document.getElementById('lbTopWickets');
+                if (elRuns) {
+                    elRuns.innerHTML = renderLbList((data.topRuns||[]).map((r,i)=>({
+                        rank: i+1, name: r.player_name, value: r.no_of_totalruns
+                    })), '');
+                }
+                if (elWkts) {
+                    elWkts.innerHTML = renderLbList((data.topWickets||[]).map((r,i)=>({
+                        rank: i+1, name: r.player_name, value: r.no_of_wickets
+                    })), '');
+                }
+                // Teams by wins could be shown in a future card; keeping current UI as-is
+            } catch(_) { /* fall back to client-side */ }
+        }
+
+        function renderLbList(rows, unit='') {
+            if (!rows || !rows.length) return '<div style="opacity:.7;">No data</div>';
+            return `<ul class="lb-list">${rows.map(r=>`
+                <li class="lb-item">
+                  <span class="lb-left"><span class="lb-rank r${r.rank}">${r.rank}</span><span class="lb-name">${r.name||'-'}</span></span>
+                  <span class="lb-value">${r.value||0}${unit}</span>
+                </li>`).join('')}</ul>`;
+        }
+
+        // Tab functionality
+        function showTab(tabName, buttonElement) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            if (buttonElement) {
+                buttonElement.classList.add('active');
+            }
+
+            // Load tab-specific content
+            switch(tabName) {
+                case 'dashboard':
+                    loadAnalytics();
+                    updateDashboardStats();
+                    createTeamWinsChart();
+                    break;
+                case 'teams':
+                    loadTeams();
+                    break;
+                case 'players':
+                    loadPlayers();
+                    populateTeamOptions();
+                    break;
+                case 'matches':
+                    loadMatches();
+                    break;
+                case 'umpires':
+                    loadUmpires();
+                    break;
+                case 'analytics':
+                    loadAnalytics();
+                    updateAnalytics();
+                    createAnalyticsCharts();
+                    break;
+                case 'leaderboards':
+                    // Prefer server-side leaderboards for speed/consistency
+                    (async () => {
+                        try { await loadLeaderboardsServer(); } catch(_) {}
+                        // Also ensure we have full dataset to compute avg/economy locally
+                        if (!playersDataAll || playersDataAll.length === 0) {
+                            await loadPlayersAll();
+                        }
+                        refreshLeaderboards();
+                    })();
+                    break;
+                case 'users':
+                    loadUsers();
+                    break;
+            }
+        }
+
+        // Dashboard functions
+        function updateDashboardStats() {
+            document.getElementById('totalTeams').textContent = teamsData.length;
+            document.getElementById('totalPlayers').textContent = playersData.length;
+            document.getElementById('totalMatches').textContent = matchesData.length;
+            document.getElementById('totalUmpires').textContent = umpiresData.length;
+        }
+
+        function createTeamWinsChart() {
+            const ctx = document.getElementById('teamWinsChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (window.teamWinsChart && typeof window.teamWinsChart.destroy === 'function') {
+                window.teamWinsChart.destroy();
+            }
+            
+            if (teamsData.length === 0) {
+                return;
+            }
+            
+            const teamNames = teamsData.map(team => team.team_name);
+            const teamWins = teamsData.map(team => team.no_of_wins || 0);
+            
+            window.teamWinsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: teamNames,
+                    datasets: [{
+                        label: 'Wins',
+                        data: teamWins,
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(118, 75, 162, 0.8)',
+                            'rgba(255, 65, 108, 0.8)',
+                            'rgba(86, 171, 47, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Team Wins Comparison'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Teams management
+        function refreshTeams() {
+          const tbody = document.getElementById('teamsTableBody');
+          tbody.innerHTML = '';
+            
+            let data = teamsData.slice();
+            const f = filters.teams;
+            if (f.country_name) data = data.filter(r => (r.country_name||'').toLowerCase().includes(String(f.country_name).toLowerCase()));
+            if (f.no_of_wins_min) data = data.filter(r => Number(r.no_of_wins||0) >= Number(f.no_of_wins_min));
+            if (f.no_of_loses_max) data = data.filter(r => Number(r.no_of_loses||0) <= Number(f.no_of_loses_max));
+
+            if (data.length === 0) {
+              const row = tbody.insertRow();
+              const cta = isAdmin() ? `<button class=\"btn btn-success\" onclick=\"showAddTeamModal()\" title=\"Add Team\">➕ Add Team</button>` : '';
+              row.innerHTML = `<td colspan="8"><div class="empty-state">No teams found. ${cta}</div></td>`;
+              return;
+          }
+            
+            const isViewer = !currentUser || currentUser.role === 'viewer';
+            data.forEach(team => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${team.team_id}</td>
+                    <td>${team.team_name}</td>
+                    <td><span class="badge-pill badge-country" title="Country: ${team.country_name}">${team.country_name}</span></td>
+                    <td class="num">${team.team_rank || '-'}</td>
+                    <td class="num"><span class="stat-pill stat-win" title="Wins: ${team.no_of_wins || 0}">${team.no_of_wins || 0}</span></td>
+                    <td class="num"><span class="stat-pill stat-loss" title="Losses: ${team.no_of_loses || 0}">${team.no_of_loses || 0}</span></td>
+                    <td class="num"><span class="stat-pill stat-draw" title="Draws: ${team.no_of_draws || 0}">${team.no_of_draws || 0}</span></td>
+                    <td>
+                        ${isViewer ? '' : `<button class=\"btn btn-warning\" title=\"Edit\" aria-label=\"Edit\" onclick=\"editTeam('${team.team_id}')\">✏</button>`}
+                        ${isViewer ? '' : `<button class=\"btn btn-danger\" title=\"Delete\" aria-label=\"Delete\" onclick=\"deleteTeam('${team.team_id}')\">🗑</button>`}
+                    </td>
+                `;
+          });
+            updateSortIndicators('teams');
+        }
+
+        function filterTeams(searchTerm) {
+            const rows = document.querySelectorAll('#teamsTableBody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm.toLowerCase()) ? '' : 'none';
+            });
+        }
+
+        function showAddTeamModal() {
+            document.getElementById('addTeamModal').style.display = 'block';
+        }
+
+        function deleteTeam(teamId) {
+            if (confirm('Are you sure you want to delete this team?')) {
+                deleteTeamAPI(teamId);
+            }
+        }
+
+        // Players management
+        function refreshPlayers() {
+            const tbody = document.getElementById('playersTableBody');
+            tbody.innerHTML = '';
+            
+            let data = playersData.slice();
+            const f = filters.players;
+            if (f.team_id) data = data.filter(r => (r.team_id||'').toLowerCase().includes(String(f.team_id).toLowerCase()));
+            if (f.no_of_totalruns_min) data = data.filter(r => Number(r.no_of_totalruns||0) >= Number(f.no_of_totalruns_min));
+            if (f.no_of_wickets_min) data = data.filter(r => Number(r.no_of_wickets||0) >= Number(f.no_of_wickets_min));
+
+            if (data.length === 0) {
+                const row = tbody.insertRow();
+                const cta = isAdmin() ? `<button class=\"btn btn-success\" onclick=\"showAddPlayerModal()\" title=\"Add Player\">➕ Add Player</button>` : '';
+                row.innerHTML = `<td colspan="8"><div class="empty-state">No players found. ${cta}</div></td>`;
+                return;
+            }
+            
+            const isViewer = !currentUser || currentUser.role === 'viewer';
+            data.forEach(player => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${player.player_id}</td>
+                    <td>${player.player_name}</td>
+                    <td>${player.team_id || '-'}</td>
+                    <td class="num">${player.batting_average || '-'}</td>
+                    <td class="num"><span class="stat-pill stat-win" title="Runs: ${player.no_of_totalruns || 0}">${player.no_of_totalruns || 0}</span></td>
+                    <td class="num"><span class="stat-pill stat-loss" title="Wickets: ${player.no_of_wickets || 0}">${player.no_of_wickets || 0}</span></td>
+                    <td>${player.type_of_bowler ? `<span class=\"badge-pill badge-bowler\" title=\"Bowler type: ${player.type_of_bowler}\">${player.type_of_bowler}</span>` : '-'}</td>
+                    <td>
+                        ${isViewer ? '' : `<button class=\"btn btn-warning\" title=\"Edit\" aria-label=\"Edit\" onclick=\"editPlayer('${player.player_id}')\">✏</button>`}
+                        ${isViewer ? '' : `<button class=\"btn btn-danger\" title=\"Delete\" aria-label=\"Delete\" onclick=\"deletePlayer('${player.player_id}')\">🗑</button>`}
+                    </td>
+                `;
+            });
+            updateSortIndicators('players');
+        }
+
+        function filterPlayers(searchTerm) {
+            const rows = document.querySelectorAll('#playersTableBody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm.toLowerCase()) ? '' : 'none';
+            });
+        }
+
+        function showAddPlayerModal() {
+            populateTeamOptions();
+            document.getElementById('addPlayerModal').style.display = 'block';
+        }
+
+        function populateTeamOptions() {
+            const select = document.getElementById('playerTeamId');
+            select.innerHTML = '<option value="">Select Team</option>';
+            teamsData.forEach(team => {
+                select.innerHTML += `<option value="${team.team_id}">${team.team_name}</option>`;
+            });
+        }
+
+        function deletePlayer(playerId) {
+            if (confirm('Are you sure you want to delete this player?')) {
+                deletePlayerAPI(playerId);
+            }
+        }
+
+        // Matches management
+        function refreshMatches() {
+            const tbody = document.getElementById('matchesTableBody');
+            tbody.innerHTML = '';
+            
+            let data = matchesData.slice();
+            const f = filters.matches;
+            if (f.team_name) data = data.filter(r => (r.team_1_name||'').toLowerCase().includes(String(f.team_name).toLowerCase()) || (r.team_2_name||'').toLowerCase().includes(String(f.team_name).toLowerCase()));
+            if (f.winner) data = data.filter(r => (r.winner||'').toLowerCase().includes(String(f.winner).toLowerCase()));
+
+            if (data.length === 0) {
+                const row = tbody.insertRow();
+                const cta = isAdmin() ? `<button class=\"btn btn-success\" onclick=\"showAddMatchModal()\" title=\"Add Match\">➕ Add Match</button>` : '';
+                row.innerHTML = `<td colspan=\"8\"><div class=\"empty-state\">No matches found. ${cta}</div></td>`;
+                return;
+            }
+            
+            const isViewer = !currentUser || currentUser.role === 'viewer';
+            data.forEach(match => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${match.match_id}</td>
+                    <td>${match.match_date}</td>
+                    <td>${match.match_time}</td>
+                    <td><span class=\"badge-pill badge-country\" title=\"Team 1: ${match.team_1_name}\">${match.team_1_name}</span></td>
+                    <td><span class=\"badge-pill badge-country\" title=\"Team 2: ${match.team_2_name}\">${match.team_2_name}</span></td>
+                    <td>${match.winner ? `<span class=\"badge-pill badge-winner\" title=\"Winner: ${match.winner}\">${match.winner}</span>` : '-'}</td>
+                    <td>${match.stadium}</td>
+                    <td>
+                        ${isViewer ? '' : `<button class=\"btn btn-warning\" title=\"Edit\" aria-label=\"Edit\" onclick=\"editMatch('${match.match_id}')\">✏</button>`}
+                        ${isViewer ? '' : `<button class=\"btn btn-danger\" title=\"Delete\" aria-label=\"Delete\" onclick=\"deleteMatch('${match.match_id}')\">🗑</button>`}
+                    </td>
+                `;
+            });
+            updateSortIndicators('matches');
+        }
+
+        function filterMatches(searchTerm) {
+            const rows = document.querySelectorAll('#matchesTableBody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm.toLowerCase()) ? '' : 'none';
+            });
+        }
+
+        function showAddMatchModal() {
+            document.getElementById('addMatchModal').style.display = 'block';
+        }
+
+        function deleteMatch(matchId) {
+            if (confirm('Are you sure you want to delete this match?')) {
+                deleteMatchAPI(matchId);
+            }
+        }
+
+        // Umpires management
+        function refreshUmpires() {
+            const tbody = document.getElementById('umpiresTableBody');
+            tbody.innerHTML = '';
+            
+            let data = umpiresData.slice();
+            const f = filters.umpires;
+            if (f.country) data = data.filter(r => (r.country||'').toLowerCase().includes(String(f.country).toLowerCase()));
+            if (f.no_of_matches_min) data = data.filter(r => Number(r.no_of_matches||0) >= Number(f.no_of_matches_min));
+
+            if (data.length === 0) {
+                const row = tbody.insertRow();
+                const cta = isAdmin() ? `<button class=\"btn btn-success\" onclick=\"showAddUmpireModal()\" title=\"Add Umpire\">➕ Add Umpire</button>` : '';
+                row.innerHTML = `<td colspan=\"5\"><div class=\"empty-state\">No umpires found. ${cta}</div></td>`;
+                return;
+            }
+            
+            const isViewer = !currentUser || currentUser.role === 'viewer';
+            data.forEach(umpire => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${umpire.umpire_id}</td>
+                    <td>${umpire.umpire_name}</td>
+                    <td><span class=\"badge-pill badge-country\" title=\"Country: ${umpire.country}\">${umpire.country}</span></td>
+                    <td class=\"num\"><span class=\"stat-pill stat-win\" title=\"Matches: ${umpire.no_of_matches || 0}\">${umpire.no_of_matches || 0}</span></td>
+                    <td>
+                        ${isViewer ? '' : `<button class=\"btn btn-warning\" title=\"Edit\" aria-label=\"Edit\" onclick=\"editUmpire('${umpire.umpire_id}')\">✏</button>`}
+                        ${isViewer ? '' : `<button class=\"btn btn-danger\" title=\"Delete\" aria-label=\"Delete\" onclick=\"deleteUmpire('${umpire.umpire_id}')\">🗑</button>`}
+                    </td>
+                `;
+            });
+            updateSortIndicators('umpires');
+        }
+
+        // Admin Users management
+        async function loadUsers() {
+            try {
+                const res = await apiCall('/users');
+                const users = res.data || [];
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = '';
+                users.forEach(u => {
+                    const row = document.createElement('tr');
+                    const initials = (u.username || '?').slice(0,2).toUpperCase();
+                    const isSelf = currentUser && currentUser.username===u.username;
+                    row.innerHTML = `
+                        <td>
+                            <div class="user-cell">
+                                <span class="avatar">${initials}</span>
+                                <span class="uname">${u.username}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <select class="role-select" onchange="changeUserRole('${u.username}', this.value)" ${isSelf ? 'disabled' : ''}>
+                                <option value="viewer" ${u.role==='viewer'?'selected':''}>viewer</option>
+                                <option value="admin" ${u.role==='admin'?'selected':''}>admin</option>
+                            </select>
+                        </td>
+                        <td>
+                            ${isSelf ? '<span class="self-badge">self</span>' : `<button class=\"btn btn-danger\" title=\"Delete user\" data-u=\"${encodeURIComponent(u.username)}\" onclick=\"deleteUser(decodeURIComponent(this.dataset.u))\">🗑</button>`}
+                        </td>`;
+                    tbody.appendChild(row);
+                });
+            } catch (e) {
+                showAlert('Failed to load users', 'error');
+            }
+        }
+
+        async function changeUserRole(username, role) {
+            try {
+                await apiCall(`/users/${encodeURIComponent(username)}/role`, 'PUT', { role });
+                showAlert('Role updated', 'success');
+                await loadUsers();
+            } catch (e) {
+                showAlert(e.message||'Failed to update role', 'error');
+            }
+        }
+
+        async function deleteUser(username) {
+            try {
+                if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+                await apiCall(`/users/${encodeURIComponent(username)}`, 'DELETE');
+                showAlert('User deleted', 'success');
+                await loadUsers();
+            } catch (e) {
+                showAlert(e.message||'Failed to delete user', 'error');
+            }
+        }
+
+        // Expose console helper for admins
+        window.adminDeleteUser = async function(username){
+            return deleteUser(username);
+        }
+
+        function filterUmpires(searchTerm) {
+            const rows = document.querySelectorAll('#umpiresTableBody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm.toLowerCase()) ? '' : 'none';
+            });
+        }
+
+        function showAddUmpireModal() {
+            document.getElementById('addUmpireModal').style.display = 'block';
+        }
+
+        function deleteUmpire(umpireId) {
+            if (confirm('Are you sure you want to delete this umpire?')) {
+                deleteUmpireAPI(umpireId);
+            }
+        }
+
+        // Analytics
+        function updateAnalytics() {
+            if (playersData.length === 0) {
+                document.getElementById('avgBattingAvg').textContent = '0.00';
+                document.getElementById('totalRuns').textContent = '0';
+                document.getElementById('totalWickets').textContent = '0';
+                document.getElementById('avgEconomy').textContent = '0.00';
+                return;
+            }
+            
+            const avgBattingAvg = playersData
+                .filter(p => p.batting_average && p.batting_average > 0)
+                .reduce((sum, player) => sum + (player.batting_average || 0), 0);
+            const avgCount = playersData.filter(p => p.batting_average && p.batting_average > 0).length;
+            const avg = avgCount > 0 ? (avgBattingAvg / avgCount).toFixed(2) : '0.00';
+            
+            const totalRuns = playersData.reduce((sum, player) => sum + (player.no_of_totalruns || 0), 0);
+            const totalWickets = playersData.reduce((sum, player) => sum + (player.no_of_wickets || 0), 0);
+            
+            const econPlayers = playersData.filter(p => typeof p.economy === 'number');
+            const avgEconomy = econPlayers.length > 0
+                ? (econPlayers.reduce((s,p) => s + (p.economy || 0), 0) / econPlayers.length).toFixed(2)
+                : '0.00';
+
+            document.getElementById('avgBattingAvg').textContent = avg;
+            document.getElementById('totalRuns').textContent = totalRuns;
+            document.getElementById('totalWickets').textContent = totalWickets;
+            document.getElementById('avgEconomy').textContent = avgEconomy;
+        }
+
+        function createAnalyticsCharts() {
+            createPlayerRunsChart();
+            createBowlerTypesChart();
+        }
+
+        function refreshLeaderboards() {
+            const raw = (playersDataAll && playersDataAll.length) ? playersDataAll : playersData;
+            const src = (raw || []).map(p => ({
+                ...p,
+                no_of_totalruns: Number(p.no_of_totalruns || 0),
+                no_of_wickets: Number(p.no_of_wickets || 0),
+                batting_average: p.batting_average == null || p.batting_average === '' ? 0 : Number(p.batting_average),
+                economy: p.economy == null || p.economy === '' ? null : Number(p.economy)
+            }));
+
+            const elRuns = document.getElementById('lbTopRuns');
+            const elWkts = document.getElementById('lbTopWickets');
+            const elAvg  = document.getElementById('lbBestAvg');
+            const elEcon = document.getElementById('lbBestEcon');
+            if (!elRuns || !elWkts || !elAvg || !elEcon) return;
+
+            const byDesc = (key) => src.slice().sort((a,b)=> (b[key]||0) - (a[key]||0));
+            const topN = (arr, n=5) => arr.filter(x=>x).slice(0,n);
+            const render = (el, rows, valueKey, unit='') => {
+                if (!el) return;
+                if (!rows.length) { el.innerHTML = '<div style="opacity:.7;">No data</div>'; return; }
+                el.innerHTML = `<ul class="lb-list">${rows.map((r,i)=>
+                    `<li class="lb-item">
+                        <span class="lb-left">
+                            <span class="lb-rank r${i+1}">${i+1}</span>
+                            <span class="lb-name">${r.player_name || r.team_name || '-'}</span>
+                        </span>
+                        <span class="lb-value">${(r[valueKey] ?? 0)}${unit}</span>
+                    </li>`).join('')}</ul>`;
+            };
+
+            render(elRuns, topN(byDesc('no_of_totalruns')), 'no_of_totalruns');
+            render(elWkts, topN(byDesc('no_of_wickets')), 'no_of_wickets');
+            render(elAvg,  topN(byDesc('batting_average')), 'batting_average');
+
+            const econ = src.filter(p=>typeof p.economy === 'number' && !Number.isNaN(p.economy) && p.economy > 0)
+                            .sort((a,b)=>(a.economy)-(b.economy));
+            render(elEcon, topN(econ), 'economy');
+        }
+
+        // Global player search (debounced)
+        function debounce(fn, ms){ let t; return function(...a){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,a), ms); }; }
+        function setupGlobalSearch(){
+            const input = document.getElementById('globalSearch');
+            const box = document.getElementById('globalSearchResults');
+            if (!input || !box) return;
+            const hide = ()=>{ box.style.display='none'; box.innerHTML=''; };
+            const showList = (items)=>{
+                if (!items || !items.length){ hide(); return; }
+                box.innerHTML = `<div style="max-height:280px; overflow:auto;">
+                  ${items.map(it=>`
+                    <div class="lb-item" data-player-id="${it.player_id||''}">
+                      <div class="lb-left"><span class="lb-name">${it.player_name||'-'}</span></div>
+                      <div class="lb-value">${Number(it.no_of_totalruns||0)} runs</div>
+                    </div>`).join('')}
+                </div>`;
+                box.style.display='block';
+                box.querySelectorAll('.lb-item').forEach(el=>{
+                    el.addEventListener('click', ()=>{
+                        const pid = el.getAttribute('data-player-id');
+                        showTab('players');
+                        // Try filter by name in players search box if present
+                        const name = el.querySelector('.lb-name')?.textContent || '';
+                        const pSearch = document.querySelector('#players .search-bar');
+                        if (pSearch){ pSearch.value = name; try { filterPlayers(name); } catch(_){} }
+                        hide();
+                    });
+                });
+            };
+            const runSearch = debounce(async ()=>{
+                const q = (input.value||'').trim();
+                if (q.length < 2){ hide(); return; }
+                try{
+                    const res = await apiCall(`/search/players?q=${encodeURIComponent(q)}&limit=8`);
+                    const items = (res && res.data && res.data.items) ? res.data.items : (res && res.data) || [];
+                    showList(items);
+                } catch(_){ hide(); }
+            }, 250);
+            input.addEventListener('input', runSearch);
+            input.addEventListener('keydown', e=>{ if(e.key==='Escape'){ input.blur(); hide(); }});
+            document.addEventListener('click', (e)=>{ if(!box.contains(e.target) && e.target!==input){ hide(); }});
+        }
+
+        function createTeamWinsChart() {
+            const ctx = document.getElementById('teamWinsChart').getContext('2d');
+            
+            if (window.teamWinsChart && typeof window.teamWinsChart.destroy === 'function') {
+                window.teamWinsChart.destroy();
+            }
+            const pal = getChartPalette();
+            if (teamsData.length === 0) {
+                return;
+            }
+            
+            const teamNames = teamsData.map(team => team.team_name);
+            const teamWins = teamsData.map(team => team.no_of_wins || 0);
+            
+            window.teamWinsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: teamNames,
+                    datasets: [{
+                        label: 'Number of Wins',
+                        data: teamWins,
+                        backgroundColor: pal.dataset.primary,
+                        borderColor: pal.dataset.primary,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: pal.grid },
+                            ticks: { color: pal.ticks }
+                        },
+                        x: { beginAtZero: true, grid: { color: pal.grid }, ticks: { color: pal.ticks } }
+                    },
+                    plugins: { legend: { labels: { color: pal.label } } }
+                }
+            });
+        }
+
+        function createBowlerTypesChart() {
+            const ctx = document.getElementById('bowlerTypesChart').getContext('2d');
+            
+            if (window.bowlerTypesChart && typeof window.bowlerTypesChart.destroy === 'function') {
+                window.bowlerTypesChart.destroy();
+            }
+            
+            if (playersData.length === 0) {
+                return;
+            }
+            
+            const typeCounts = playersData.reduce((acc, player) => {
+                const type = player.type_of_bowler || 'Unknown';
+                acc[type] = (acc[type] || 0) + 1;
+                return acc;
+            }, {});
+            
+            const labels = Object.keys(typeCounts);
+            const counts = Object.values(typeCounts);
+            const pal = getChartPalette();
+            
+            window.bowlerTypesChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Number of Players',
+                        data: counts,
+                        backgroundColor: [pal.dataset.primary, pal.dataset.secondary, 'rgba(34,197,94,0.7)', 'rgba(234,179,8,0.7)', 'rgba(59,130,246,0.7)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: pal.label } } } }
+            });
+        }
+
+        function createPlayerRunsChart() {
+            const ctx = document.getElementById('playerRunsChart').getContext('2d');
+            
+            if (window.playerRunsChart && typeof window.playerRunsChart.destroy === 'function') {
+                window.playerRunsChart.destroy();
+            }
+            
+            if (playersData.length === 0) {
+                return;
+            }
+            
+            const playerNames = playersData.map(player => player.player_name);
+            const playerRuns = playersData.map(player => player.no_of_totalruns || 0);
+            
+            const pal = getChartPalette();
+            window.playerRunsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: playerNames,
+                    datasets: [{
+                        label: 'Total Runs',
+                        data: playerRuns,
+                        borderColor: pal.dataset.primary,
+                        backgroundColor: pal.dataset.primary,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: pal.grid },
+                            ticks: { color: pal.ticks }
+                        },
+                        x: { beginAtZero: true, grid: { color: pal.grid }, ticks: { color: pal.ticks } }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Player Runs Distribution',
+                            color: pal.label
+                        },
+                        legend: { labels: { color: pal.label } }
+                    }
+                }
+            });
+        }
+        
+        // Advanced Queries
+        function runQuery(queryType) {
+            const resultsDiv = document.getElementById('queryResults');
+            let results = '';
+            
+            switch(queryType) {
+                case 'topBatsmen':
+                    const topBatsmen = playersData.filter(player => player.batting_average > 60);
+                    results = `
+                        <h3>🏏 Top Batsmen (Average > 60)</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Player Name</th><th class="num">Batting Average</th><th class="num">Total Runs</th></tr>
+                            </thead>
+                            <tbody>
+                                ${topBatsmen.map(player => 
+                                    `<tr><td>${player.player_name}</td><td class="num">${player.batting_average}</td><td class="num"><span class="stat-pill stat-win" title="Runs: ${player.no_of_totalruns || 0}">${player.no_of_totalruns || 0}</span></td></tr>`
+                                ).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    break;
+                
+                case 'fastBowlers':
+                    const fastBowlers = playersData.filter(player => player.type_of_bowler === 'fast');
+                    results = `
+                        <h3>⚡ Fast Bowlers</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Player Name</th><th>Team ID</th><th class="num">Wickets</th></tr>
+                            </thead>
+                            <tbody>
+                                ${fastBowlers.map(player => 
+                                    `<tr><td>${player.player_name}</td><td>${player.team_id}</td><td class="num"><span class="stat-pill stat-loss" title="Wickets: ${player.no_of_wickets || 0}">${player.no_of_wickets || 0}</span></td></tr>`
+                                ).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    break;
+                
+                case 'experiencedUmpires':
+                    const experiencedUmpires = umpiresData.filter(umpire => umpire.no_of_matches > 100);
+                    results = `
+                        <h3>👨‍⚖ Experienced Umpires (>100 matches)</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Umpire Name</th><th>Country</th><th class="num">Matches</th></tr>
+                            </thead>
+                            <tbody>
+                                ${experiencedUmpires.map(umpire => 
+                                    `<tr><td>${umpire.umpire_name}</td><td><span class="badge-pill badge-country" title="Country: ${umpire.country}">${umpire.country}</span></td><td class="num"><span class="stat-pill stat-win" title="Matches: ${umpire.no_of_matches}">${umpire.no_of_matches}</span></td></tr>`
+                                ).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    break;
+                
+                case 'teamWinRates':
+                    results = `
+                        <h3>📊 Team Win Rates</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Team Name</th><th class="num">Wins</th><th class="num">Total Matches</th><th class="num">Win Rate</th></tr>
+                            </thead>
+                            <tbody>
+                                ${teamsData.map(team => {
+                                    const totalMatches = team.no_of_wins + team.no_of_loses + team.no_of_draws;
+                                    const winRate = totalMatches > 0 ? ((team.no_of_wins / totalMatches) * 100).toFixed(1) : 0;
+                                    return `<tr><td>${team.team_name}</td><td class="num"><span class="stat-pill stat-win" title="Wins: ${team.no_of_wins}">${team.no_of_wins}</span></td><td class="num"><span class="stat-pill stat-draw" title="Matches: ${totalMatches}">${totalMatches}</span></td><td class="num">${winRate}%</td></tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    break;
+                
+                case 'playersWithHighSixes':
+                    // Show top players by no_of_sixes (Top 10) — works even if some players have 0 or missing values
+                    const topPlayers = playersData
+                        .slice()
+                        .sort((a, b) => (b.no_of_sixes || 0) - (a.no_of_sixes || 0))
+                        .slice(0, 10);
+
+                    results = `
+                        <h3>🚀 Players with Most Sixes (Top 10)</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Player Name</th><th>Team ID</th><th class="num">No. of Sixes</th></tr>
+                            </thead>
+                            <tbody>
+                                ${topPlayers.length === 0 
+                                    ? '<tr><td colspan="3"><div class="empty-state" style="text-align:center;">No data available</div></td></tr>'
+                                    : topPlayers.map(player => 
+                                        `<tr><td>${player.player_name}</td><td>${player.team_id || '-'}</td><td class="num"><span class="stat-pill stat-win" title="Sixes: ${player.no_of_sixes || 0}">${player.no_of_sixes || 0}</span></td></tr>`
+                                      ).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    break;
+                
+                case 'recentMatches':
+                    const recentMatches = matchesData.filter(match => match.match_date.includes('2011'));
+                    results = `
+                        <h3>📅 Recent Matches (2011)</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Match ID</th><th>Date</th><th>Teams</th><th>Winner</th><th>Stadium</th></tr>
+                            </thead>
+                            <tbody>
+                                ${recentMatches.map(match => 
+                                    `<tr><td>${match.match_id}</td><td>${match.match_date}</td><td><span class="badge-pill badge-country" title="Team 1: ${match.team_1_name}">${match.team_1_name}</span> vs <span class="badge-pill badge-country" title="Team 2: ${match.team_2_name}">${match.team_2_name}</span></td><td>${match.winner ? `<span class=\"badge-pill badge-winner\" title=\"Winner: ${match.winner}\">${match.winner}</span>` : '-'}</td><td>${match.stadium}</td></tr>`
+                                ).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    break;
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+
+        // Modal functions
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '300px';
+            
+            document.body.appendChild(alertDiv);
+            requestAnimationFrame(()=> alertDiv.classList.add('show'));
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Auth UI events
+        document.getElementById('showRegisterBtn').addEventListener('click', () => { showAuthModal(true); document.getElementById('resetRequestForm').style.display='none'; document.getElementById('resetForm').style.display='none'; });
+        document.getElementById('showLoginBtn').addEventListener('click', () => showAuthModal(false));
+        document.getElementById('showResetRequestBtn').addEventListener('click', () => {
+            document.getElementById('loginForm').style.display='none';
+            document.getElementById('registerForm').style.display='none';
+            document.getElementById('resetForm').style.display='none';
+            document.getElementById('authTitle').textContent = 'Request Password Reset';
+            document.getElementById('resetRequestForm').style.display='block';
+        });
+        document.getElementById('backToLoginFromReq').addEventListener('click', ()=> showAuthModal(false));
+        document.getElementById('backToLoginFromReset').addEventListener('click', ()=> showAuthModal(false));
+        document.getElementById('resetRequestForm').addEventListener('submit', async (e)=>{
+            e.preventDefault();
+            const u = document.getElementById('resetReqUsername').value;
+            try {
+                const res = await apiCall('/auth/request-reset','POST',{ username: u });
+                showAlert(`Token: ${res.data.token} (valid 10 mins)`, 'success');
+                document.getElementById('loginForm').style.display='none';
+                document.getElementById('registerForm').style.display='none';
+                document.getElementById('resetRequestForm').style.display='none';
+                document.getElementById('authTitle').textContent = 'Reset Password';
+                document.getElementById('resetUsername').value = u;
+                document.getElementById('resetForm').style.display='block';
+            } catch (err) {}
+        });
+        document.getElementById('resetForm').addEventListener('submit', async (e)=>{
+            e.preventDefault();
+            const payload = { username: document.getElementById('resetUsername').value, token: document.getElementById('resetToken').value, newPassword: document.getElementById('resetNewPassword').value };
+            try { await apiCall('/auth/reset','POST', payload); showAlert('Password reset. Please login.', 'success'); showAuthModal(false); } catch(err){}
+        });
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value;
+            const p = document.getElementById('loginPassword').value;
+            await handleLogin(u, p);
+        });
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const u = document.getElementById('registerUsername').value;
+            const p = document.getElementById('registerPassword').value;
+            await handleRegister(u, p);
+        });
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+        // Pagination page size change
+        ['teams','players','matches','umpires'].forEach(ent=>{
+            const sel = document.getElementById(`${ent}PageSize`);
+            if (sel) sel.addEventListener('change', ()=>{ paging[ent].page = 0; paging[ent].size = parseInt(sel.value)||10; reloadEntity(ent); });
+        });
+
+        // CSV imports
+        document.getElementById('teamsImportInput').addEventListener('change', async (e)=>{
+            const file = e.target.files[0]; if (!file) return;
+            const text = await file.text();
+            const rows = parseCSV(text);
+            for (const r of rows) { await addTeam({
+                team_id: r.team_id, team_name: r.team_name, country_name: r.country_name,
+                team_rank: r.team_rank? Number(r.team_rank): null, no_of_wins: Number(r.no_of_wins||0), no_of_loses: Number(r.no_of_loses||0), no_of_draws: Number(r.no_of_draws||0)
+            }); }
+            e.target.value='';
+        });
+        document.getElementById('playersImportInput').addEventListener('change', async (e)=>{
+            const file = e.target.files[0]; if (!file) return;
+            const text = await file.text();
+            const rows = parseCSV(text);
+            for (const r of rows) { await addPlayer({
+                player_id: r.player_id, player_name: r.player_name, team_id: r.team_id,
+                batting_average: r.batting_average? Number(r.batting_average): null,
+                no_of_totalruns: Number(r.no_of_totalruns||0), no_of_wickets: Number(r.no_of_wickets||0),
+                type_of_bowler: r.type_of_bowler || null, no_of_sixes: Number(r.no_of_sixes||0), economy: r.economy? Number(r.economy): null
+            }); }
+            e.target.value='';
+            await loadPlayersAll(); refreshLeaderboards();
+        });
+
+        // Form submissions
+        document.getElementById('addTeamForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.role === 'viewer') { showAlert('You do not have permission to add teams.', 'error'); return; }
+            
+            const teamData = {
+                team_id: document.getElementById('teamId').value,
+                team_name: document.getElementById('teamName').value,
+                country_name: document.getElementById('countryName').value,
+                team_rank: parseInt(document.getElementById('teamRank').value) || null,
+                no_of_wins: parseInt(document.getElementById('noOfWins').value) || 0,
+                no_of_loses: parseInt(document.getElementById('noOfLoses').value) || 0,
+                no_of_draws: 0
+            };
+            
+            await addTeam(teamData);
+            closeModal('addTeamModal');
+            this.reset();
+        });
+
+        document.getElementById('addPlayerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.role === 'viewer') { showAlert('You do not have permission to add players.', 'error'); return; }
+            
+            const playerData = {
+                player_id: document.getElementById('playerId').value,
+                player_name: document.getElementById('playerName').value,
+                team_id: document.getElementById('playerTeamId').value,
+                batting_average: parseFloat(document.getElementById('battingAverage').value) || null,
+                no_of_totalruns: parseInt(document.getElementById('totalRuns').value) || 0,
+                no_of_wickets: 0,
+                type_of_bowler: document.getElementById('bowlerType').value || null,
+                economy: parseFloat(document.getElementById('economy').value) || null,
+                no_of_sixes: parseInt(document.getElementById('noOfSixes').value) || 0
+            };
+            
+            await addPlayer(playerData);
+            closeModal('addPlayerModal');
+            this.reset();
+        });
+
+        document.getElementById('addMatchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.role === 'viewer') { showAlert('You do not have permission to add matches.', 'error'); return; }
+            
+            const matchData = {
+                match_id: document.getElementById('matchId').value,
+                match_date: document.getElementById('matchDate').value,
+                match_time: document.getElementById('matchTime').value,
+                team_1_name: document.getElementById('team1Name').value,
+                team_2_name: document.getElementById('team2Name').value,
+                winner: document.getElementById('winner').value,
+                stadium: document.getElementById('stadium').value
+            };
+            
+            await addMatch(matchData);
+            closeModal('addMatchModal');
+            this.reset();
+        });
+
+        document.getElementById('addUmpireForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.role === 'viewer') { showAlert('You do not have permission to add umpires.', 'error'); return; }
+            
+            const umpireData = {
+                umpire_id: document.getElementById('umpireId').value,
+                umpire_name: document.getElementById('umpireName').value,
+                country: document.getElementById('umpireCountry').value,
+                no_of_matches: parseInt(document.getElementById('noOfMatches').value) || 0
+            };
+            
+            await addUmpire(umpireData);
+            closeModal('addUmpireModal');
+            this.reset();
+        });
+
+        // Edit form submissions
+        document.getElementById('editTeamForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.role === 'viewer') { showAlert('You do not have permission to edit teams.', 'error'); return; }
+            
+            const teamId = document.getElementById('editTeamId').value;
+            const teamData = {
+                team_name: document.getElementById('editTeamName').value,
+                country_name: document.getElementById('editCountryName').value,
+                team_rank: parseInt(document.getElementById('editTeamRank').value) || null,
+                no_of_wins: parseInt(document.getElementById('editNoOfWins').value) || 0,
+                no_of_loses: parseInt(document.getElementById('editNoOfLoses').value) || 0,
+                no_of_draws: parseInt(document.getElementById('editNoOfDraws').value) || 0
+            };
+            
+            await updateTeam(teamId, teamData);
+            closeModal('editTeamModal');
+        });
+
+        document.getElementById('editPlayerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.role === 'viewer') { showAlert('You do not have permission to edit players.', 'error'); return; }
+            
+            const playerId = document.getElementById('editPlayerId').value;
+            const playerData = {
+                player_name: document.getElementById('editPlayerName').value,
+                team_id: document.getElementById('editPlayerTeamId').value,
+                batting_average: parseFloat(document.getElementById('editBattingAverage').value) || null,
+                no_of_totalruns: parseInt(document.getElementById('editTotalRuns').value) || 0,
+                no_of_wickets: parseInt(document.getElementById('editNoOfWickets').value) || 0,
+                type_of_bowler: document.getElementById('editBowlerType').value || null,
+                no_of_sixes: parseInt(document.getElementById('editNoOfSixes').value) || 0   // added
+            };
+            
+            await updatePlayer(playerId, playerData);
+            closeModal('editPlayerModal');
+        });
+
+        document.getElementById('editMatchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.role === 'viewer') { showAlert('You do not have permission to edit matches.', 'error'); return; }
+            
+            const matchId = document.getElementById('editMatchId').value;
+            const matchData = {
+                match_date: document.getElementById('editMatchDate').value,
+                match_time: document.getElementById('editMatchTime').value,
+                team_1_name: document.getElementById('editTeam1Name').value,
+                team_2_name: document.getElementById('editTeam2Name').value,
+                winner: document.getElementById('editWinner').value,
+                stadium: document.getElementById('editStadium').value
+            };
+            
+            await updateMatch(matchId, matchData);
+            closeModal('editMatchModal');
+        });
+
+        document.getElementById('editUmpireForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.role === 'viewer') { showAlert('You do not have permission to edit umpires.', 'error'); return; }
+            
+            const umpireId = document.getElementById('editUmpireId').value;
+            const umpireData = {
+                umpire_name: document.getElementById('editUmpireName').value,
+                country: document.getElementById('editUmpireCountry').value,
+                no_of_matches: parseInt(document.getElementById('editNoOfMatches').value) || 0
+            };
+            
+            await updateUmpire(umpireId, umpireData);
+            closeModal('editUmpireModal');
+        });
+
+        // Edit functions
+        function editTeam(teamId) {
+            const team = teamsData.find(t => t.team_id === teamId);
+            if (!team) {
+                showAlert('Team not found!', 'error');
+                return;
+            }
+            
+            document.getElementById('editTeamId').value = team.team_id;
+            document.getElementById('editTeamIdDisplay').value = team.team_id;
+            document.getElementById('editTeamName').value = team.team_name;
+            document.getElementById('editCountryName').value = team.country_name;
+            document.getElementById('editTeamRank').value = team.team_rank || '';
+            document.getElementById('editNoOfWins').value = team.no_of_wins || 0;
+            document.getElementById('editNoOfLoses').value = team.no_of_loses || 0;
+            document.getElementById('editNoOfDraws').value = team.no_of_draws || 0;
+            
+            document.getElementById('editTeamModal').style.display = 'block';
+        }
+
+        function editPlayer(playerId) {
+            const player = playersData.find(p => p.player_id === playerId);
+            if (!player) {
+                showAlert('Player not found!', 'error');
+                return;
+            }
+            
+            document.getElementById('editPlayerId').value = player.player_id;
+            document.getElementById('editPlayerIdDisplay').value = player.player_id;
+            document.getElementById('editPlayerName').value = player.player_name;
+            document.getElementById('editPlayerTeamId').value = player.team_id;
+            document.getElementById('editBattingAverage').value = player.batting_average || '';
+            document.getElementById('editTotalRuns').value = player.no_of_totalruns || 0;
+            document.getElementById('editNoOfWickets').value = player.no_of_wickets || 0;
+            document.getElementById('editBowlerType').value = player.type_of_bowler || '';
+            
+            // Populate team options
+            const select = document.getElementById('editPlayerTeamId');
+            select.innerHTML = '<option value="">Select Team</option>';
+            teamsData.forEach(team => {
+                const option = document.createElement('option');
+                option.value = team.team_id;
+                option.textContent = team.team_name;
+                select.appendChild(option);
+            });
+            select.value = player.team_id || '';
+            
+            document.getElementById('editPlayerModal').style.display = 'block';
+        }
+
+        function editMatch(matchId) {
+            const match = matchesData.find(m => m.match_id === matchId);
+            if (!match) {
+                showAlert('Match not found!', 'error');
+                return;
+            }
+            
+            document.getElementById('editMatchId').value = match.match_id;
+            document.getElementById('editMatchIdDisplay').value = match.match_id;
+            document.getElementById('editMatchDate').value = match.match_date;
+            document.getElementById('editMatchTime').value = match.match_time;
+            document.getElementById('editTeam1Name').value = match.team_1_name;
+            document.getElementById('editTeam2Name').value = match.team_2_name;
+            document.getElementById('editWinner').value = match.winner;
+            document.getElementById('editStadium').value = match.stadium;
+            
+            document.getElementById('editMatchModal').style.display = 'block';
+        }
+
+        function editUmpire(umpireId) {
+            const umpire = umpiresData.find(u => u.umpire_id === umpireId);
+            if (!umpire) {
+                showAlert('Umpire not found!', 'error');
+                return;
+            }
+            
+            document.getElementById('editUmpireId').value = umpire.umpire_id;
+            document.getElementById('editUmpireIdDisplay').value = umpire.umpire_id;
+            document.getElementById('editUmpireName').value = umpire.umpire_name;
+            document.getElementById('editUmpireCountry').value = umpire.country;
+            document.getElementById('editNoOfMatches').value = umpire.no_of_matches || 0;
+            
+            document.getElementById('editUmpireModal').style.display = 'block';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        // Close topmost modal with Escape
+        document.addEventListener('keydown', function(e){
+            if (e.key === 'Escape') {
+                const open = Array.from(document.querySelectorAll('.modal')).find(m=>m.style.display==='block');
+                if (open) open.style.display = 'none';
+            }
+        });
+
+        let __debounceTimers = { teams: null, players: null, matches: null, umpires: null };
+        function filterTeams(searchTerm) {
+            clearTimeout(__debounceTimers.teams);
+            __debounceTimers.teams = setTimeout(() => {
+                const rows = document.querySelectorAll('#teamsTableBody tr');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm.toLowerCase()) ? '' : 'none';
+                });
+            }, 250);
+        }
+
+        function filterPlayers(searchTerm) {
+            clearTimeout(__debounceTimers.players);
+            __debounceTimers.players = setTimeout(() => {
+                const rows = document.querySelectorAll('#playersTableBody tr');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm.toLowerCase()) ? '' : 'none';
+                });
+            }, 250);
+        }
+
+        function filterMatches(searchTerm) {
+            clearTimeout(__debounceTimers.matches);
+            __debounceTimers.matches = setTimeout(() => {
+                const rows = document.querySelectorAll('#matchesTableBody tr');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm.toLowerCase()) ? '' : 'none';
+                });
+            }, 250);
+        }
+
+        function filterUmpires(searchTerm) {
+            clearTimeout(__debounceTimers.umpires);
+            __debounceTimers.umpires = setTimeout(() => {
+                const rows = document.querySelectorAll('#umpiresTableBody tr');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm.toLowerCase()) ? '' : 'none';
+                });
+            }, 250);
+        }
+
+        // Initialize app on load (requires auth)
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (location.hash === '#clear') {
+                try { localStorage.removeItem('token'); } catch (_) {}
+                showAlert('Auth token cleared. Please login or register.', 'success');
+                // Remove the hash from URL so it doesn't repeat
+                if (history && history.replaceState) {
+                    history.replaceState(null, document.title, location.pathname + location.search);
+                } else {
+                    location.hash = '';
+                }
+            }
+            // Apply saved theme and density
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const savedDensity = localStorage.getItem('density') || 'normal';
+            setTheme(savedTheme);
+            setDensity(savedDensity);
+
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                const next = document.body.classList.contains('dark') ? 'light' : 'dark';
+                setTheme(next);
+            });
+            document.getElementById('densityToggle').addEventListener('click', () => {
+                const next = document.body.classList.contains('compact-rows') ? 'normal' : 'compact';
+                setDensity(next);
+            });
+            // initialize global search
+            try { setupGlobalSearch(); } catch(_) {}
+            await initApp();
+        });
+
+        function setTheme(mode) {
+            if (mode === 'dark') document.body.classList.add('dark');
+            else document.body.classList.remove('dark');
+            localStorage.setItem('theme', mode);
+            const btn = document.getElementById('themeToggle');
+            if (btn) btn.textContent = mode === 'dark' ? '☀️' : '🌙';
+            // re-render charts to apply palette
+            try { createTeamWinsChart(); } catch(e){}
+            try { createAnalyticsCharts(); } catch(e){}
+        }
+
+        function setDensity(mode) {
+            if (mode === 'compact') document.body.classList.add('compact-rows');
+            else document.body.classList.remove('compact-rows');
+            localStorage.setItem('density', mode);
+            const btn = document.getElementById('densityToggle');
+            if (btn) btn.textContent = mode === 'compact' ? '↕+' : '↕';
+        }
+
+        // Dashboard/Analytics skeletons
+        function setStatsLoading(loading) {
+            const ids = ['totalTeams','totalPlayers','totalMatches','totalUmpires','avgBattingAvg','totalRuns','totalWickets','avgEconomy'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (loading) el.classList.add('skeleton'); else el.classList.remove('skeleton');
+            });
+        }
+    </script>
+</body>
+</html>
